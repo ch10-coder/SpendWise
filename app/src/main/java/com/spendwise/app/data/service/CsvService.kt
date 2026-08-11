@@ -71,16 +71,15 @@ class CsvService(
                 if (line.isEmpty()) continue
 
                 val tokens = parseCsvLine(line)
-                if (tokens.size < 5) continue
+                if (tokens.size < 4) continue
 
-                // Formats expected:
-                // If 7 tokens: ID, Date, Title, Type, Amount, Category, Note
-                // If 6 tokens: Date, Title, Type, Amount, Category, Note
-                val (dateStr, title, typeStr, amountStr, catName, note) = when (tokens.size) {
-                    7 -> arrayOf(tokens[1], tokens[2], tokens[3], tokens[4], tokens[5], tokens[6])
-                    6 -> arrayOf(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4], tokens[5])
-                    else -> arrayOf(tokens[0], tokens[1], tokens[2], tokens[3], tokens.getOrNull(4) ?: "", "")
-                }
+                val isSevenTokens = tokens.size >= 7
+                val dateStr = if (isSevenTokens) tokens[1] else tokens[0]
+                val title = if (isSevenTokens) tokens[2] else tokens.getOrElse(1) { "Imported" }
+                val typeStr = if (isSevenTokens) tokens[3] else tokens.getOrElse(2) { "EXPENSE" }
+                val amountStr = if (isSevenTokens) tokens[4] else tokens.getOrElse(3) { "0" }
+                val catName = if (isSevenTokens) tokens[5] else tokens.getOrElse(4) { "" }
+                val noteStr = if (isSevenTokens) tokens[6] else tokens.getOrElse(5) { "" }
 
                 val timestamp = try {
                     dateFormat.parse(dateStr)?.time ?: System.currentTimeMillis()
@@ -101,9 +100,8 @@ class CsvService(
                 var categoryId: Long? = null
 
                 if (cleanCatName.isNotEmpty() && cleanCatName.lowercase() != "uncategorized") {
-                    var catEntity = categoryMap[cleanCatName.lowercase()]
+                    val catEntity = categoryMap[cleanCatName.lowercase()]
                     if (catEntity == null) {
-                        // Create category
                         val newCat = CategoryEntity(
                             name = cleanCatName,
                             type = type,
@@ -119,14 +117,16 @@ class CsvService(
                     }
                 }
 
+                val finalNote: String? = if (noteStr.isBlank()) null else noteStr
+
                 newTransactions.add(
                     TransactionEntity(
-                        title = title.ifBlank { "Imported Transaction" },
+                        title = if (title.isBlank()) "Imported Transaction" else title,
                         amount = amount,
                         type = type,
                         categoryId = categoryId,
                         dateTimestamp = timestamp,
-                        note = note.ifBlank { null }
+                        note = finalNote
                     )
                 )
             }

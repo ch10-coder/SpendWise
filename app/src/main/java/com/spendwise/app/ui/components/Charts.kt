@@ -1,0 +1,225 @@
+package com.spendwise.app.ui.components
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.spendwise.app.model.CategorySpending
+import com.spendwise.app.model.DailySpending
+import com.spendwise.app.ui.theme.Emerald500
+import com.spendwise.app.ui.theme.Rose500
+import java.util.Locale
+
+@Composable
+fun DonutPieChart(
+    categorySpendings: List<CategorySpending>,
+    totalExpense: Double,
+    currencySymbol: String,
+    modifier: Modifier = Modifier
+) {
+    val animationProgress = remember { Animatable(0f) }
+
+    LaunchedEffect(categorySpendings) {
+        animationProgress.snapTo(0f)
+        animationProgress.animateTo(1f, animationSpec = tween(750))
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(220.dp)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.size(190.dp)) {
+                val strokeWidth = 36.dp.toPx()
+                val radius = (size.minDimension - strokeWidth) / 2
+                val centerOffset = Offset(size.width / 2, size.height / 2)
+
+                if (categorySpendings.isEmpty() || totalExpense <= 0) {
+                    // Empty grey ring
+                    drawCircle(
+                        color = Color(0xFFE2E8F0),
+                        radius = radius,
+                        center = centerOffset,
+                        style = Stroke(width = strokeWidth)
+                    )
+                } else {
+                    var startAngle = -90f
+
+                    categorySpendings.forEach { spending ->
+                        val sweepAngle = (spending.percentage / 100f) * 360f * animationProgress.value
+                        val sliceColor = CategoryIconHelper.parseColor(spending.category.colorHex)
+
+                        drawArc(
+                            color = sliceColor,
+                            startAngle = startAngle,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                            size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+                        )
+                        startAngle += sweepAngle
+                    }
+                }
+            }
+
+            // Center text summary
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Total Spent",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "$currencySymbol${String.format(Locale.US, "%,.2f", totalExpense)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Breakdown Legend
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            categorySpendings.forEach { item ->
+                val sliceColor = CategoryIconHelper.parseColor(item.category.colorHex)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(sliceColor)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = item.category.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = String.format(Locale.US, "%.1f%%", item.percentage),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "$currencySymbol${String.format(Locale.US, "%,.2f", item.totalAmount)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DailySpendingBarChart(
+    dailySpendings: List<DailySpending>,
+    currencySymbol: String,
+    modifier: Modifier = Modifier
+) {
+    val maxExpense = (dailySpendings.maxOfOrNull { it.totalExpense } ?: 0.0).coerceAtLeast(10.0)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Daily Spending Trend",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .padding(horizontal = 12.dp, vertical = 12.dp)
+        ) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(116.dp)) {
+                if (dailySpendings.isNotEmpty()) {
+                    val barWidth = (size.width / dailySpendings.size).coerceAtMost(16.dp.toPx())
+                    val spacing = (size.width - (barWidth * dailySpendings.size)) / (dailySpendings.size + 1)
+
+                    dailySpendings.forEachIndexed { index, daily ->
+                        val barHeight = ((daily.totalExpense / maxExpense) * (size.height - 10.dp.toPx())).toFloat()
+                        val x = spacing + index * (barWidth + spacing)
+                        val y = size.height - barHeight
+
+                        if (barHeight > 0) {
+                            drawRoundRect(
+                                color = Rose500.copy(alpha = 0.85f),
+                                topLeft = Offset(x, y),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                            )
+                        } else {
+                            // Baseline tick
+                            drawCircle(
+                                color = Color(0xFF94A3B8).copy(alpha = 0.4f),
+                                radius = 2.dp.toPx(),
+                                center = Offset(x + barWidth / 2, size.height - 4.dp.toPx())
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

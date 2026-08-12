@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpendWise — Personal Finance & Expense Tracker</title>
+    <style>
+        :root {
+            --primary: #10B981;
+            --bg: #0F172A;
+            --card: #1E293B;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --border: #334155;
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        body {
+            font-family: var(--font);
+            background-color: var(--bg);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .hero-card {
+            max-width: 600px;
+            margin: 20px;
+            background: var(--card);
+            border-radius: 24px;
+            padding: 40px 32px;
+            border: 1px solid var(--border);
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .logo {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #10B981, #059669);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin-bottom: 16px;
+        }
+        h1 {
+            font-size: 2rem;
+            margin: 0 0 10px 0;
+            color: var(--text-primary);
+        }
+        p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .badge-list {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+        .badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.95rem;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-outline {
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-card">
+        <div class="logo">📊</div>
+        <h1>SpendWise</h1>
+        <p>A fast, private, and 100% offline-first Expense Tracker and Monthly Budget Manager for Android.</p>
+        
+        <div class="badge-list">
+            <span class="badge">🔒 100% Private</span>
+            <span class="badge">⚡ Offline-First</span>
+            <span class="badge">📈 Visual Analytics</span>
+            <span class="badge">💾 CSV Export/Import</span>
+        </div>
+
+        <div class="links">
+            <a href="privacy-policy.html" class="btn btn-outline">Privacy Policy</a>
+            <a href="https://github.com/ch10-coder/SpendWise" class="btn btn-primary">GitHub Repository</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -6,6 +6,7 @@ import com.spendwise.app.data.local.entity.CategoryEntity
 import com.spendwise.app.data.repository.SpendWiseRepository
 import com.spendwise.app.model.BudgetWithSpending
 import com.spendwise.app.model.CurrencyOption
+import com.spendwise.app.model.OverallBudgetSummary
 import com.spendwise.app.model.TransactionType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,19 +14,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-
-data class OverallBudgetSummary(
-    val totalBudget: Double,
-    val totalSpent: Double,
-    val remainingBudget: Double,
-    val progressFraction: Float,
-    val isOverBudget: Boolean
-)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BudgetViewModel(
@@ -43,22 +37,22 @@ class BudgetViewModel(
     val expenseCategories: StateFlow<List<CategoryEntity>> = repository.getCategoriesByType(TransactionType.EXPENSE)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val budgetsWithSpending: StateFlow<List<BudgetWithSpending>> = selectedYear.flatMapLatest { year ->
-        selectedMonth.flatMapLatest { month ->
-            repository.getBudgetsWithSpendingForMonth(year, month)
-        }
+    val budgetsWithSpending: StateFlow<List<BudgetWithSpending>> = combine(
+        selectedYear, selectedMonth
+    ) { year, month ->
+        Pair(year, month)
+    }.flatMapLatest { (year, month) ->
+        repository.getBudgetsWithSpendingForMonth(year, month)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val overallSummary: StateFlow<OverallBudgetSummary> = budgetsWithSpending.combine(
-        MutableStateFlow(Unit)
-    ) { budgets, _ ->
+    val overallSummary: StateFlow<OverallBudgetSummary> = budgetsWithSpending.map { budgets ->
         val totalBudget = budgets.sumOf { it.limitAmount }
         val totalSpent = budgets.sumOf { it.spentAmount }
         val progress = if (totalBudget > 0) (totalSpent / totalBudget).toFloat().coerceIn(0f, 2f) else 0f
         OverallBudgetSummary(
             totalBudget = totalBudget,
             totalSpent = totalSpent,
-            remainingBudget = totalBudget - totalSpent,
+            remaining = totalBudget - totalSpent,
             progressFraction = progress,
             isOverBudget = totalSpent > totalBudget
         )
@@ -73,8 +67,9 @@ class BudgetViewModel(
 
     fun previousMonth() {
         if (selectedMonth.value == 1) {
+            val y = selectedYear.value - 1
             selectedMonth.value = 12
-            selectedYear.value -= 1
+            selectedYear.value = y
         } else {
             selectedMonth.value -= 1
         }
@@ -82,8 +77,9 @@ class BudgetViewModel(
 
     fun nextMonth() {
         if (selectedMonth.value == 12) {
+            val y = selectedYear.value + 1
             selectedMonth.value = 1
-            selectedYear.value += 1
+            selectedYear.value = y
         } else {
             selectedMonth.value += 1
         }
@@ -99,6 +95,12 @@ class BudgetViewModel(
     fun deleteBudget(id: Long) {
         viewModelScope.launch {
             repository.deleteBudget(id)
+        }
+    }
+
+    fun copyBudgetsFromPreviousMonth() {
+        viewModelScope.launch {
+            repository.getBudgetsFromPreviousMonth(selectedYear.value, selectedMonth.value)
         }
     }
 }

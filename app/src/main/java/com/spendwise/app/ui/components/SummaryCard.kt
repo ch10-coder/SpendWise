@@ -16,24 +16,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Emerald50
 import com.spendwise.app.ui.theme.Rose500
-import com.spendwise.app.ui.theme.Rose50
 import java.util.Locale
 
 @Composable
@@ -42,7 +41,9 @@ fun SummaryCard(
     totalIncome: Double,
     totalExpense: Double,
     currencySymbol: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBalanceHidden: Boolean = false,
+    onToggleHidden: () -> Unit = {}
 ) {
     Card(
         modifier = modifier
@@ -59,17 +60,37 @@ fun SummaryCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            Text(
-                text = "Total Balance",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Total Balance",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(
+                    onClick = onToggleHidden,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = "Toggle Balance Visibility",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(4.dp))
+            
+            val balanceColor = if (totalBalance < 0 && !isBalanceHidden) Rose500 else MaterialTheme.colorScheme.onSurface
+            val balanceText = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", totalBalance)}"
+            
             Text(
-                text = "$currencySymbol${String.format(Locale.US, "%,.2f", totalBalance)}",
+                text = balanceText,
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = balanceColor
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -84,6 +105,7 @@ fun SummaryCard(
                     amount = totalIncome,
                     currencySymbol = currencySymbol,
                     isIncome = true,
+                    isBalanceHidden = isBalanceHidden,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -93,6 +115,7 @@ fun SummaryCard(
                     amount = totalExpense,
                     currencySymbol = currencySymbol,
                     isIncome = false,
+                    isBalanceHidden = isBalanceHidden,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -106,6 +129,7 @@ fun IncomeExpensePill(
     amount: Double,
     currencySymbol: String,
     isIncome: Boolean,
+    isBalanceHidden: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val accentColor = if (isIncome) Emerald500 else Rose500
@@ -143,8 +167,10 @@ fun IncomeExpensePill(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
+                val amountText = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", amount)}"
                 Text(
-                    text = "$currencySymbol${String.format(Locale.US, "%,.2f", amount)}",
+                    text = amountText,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,

@@ -6,9 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spendwise.app.model.ThemeMode
 import com.spendwise.app.ui.screens.main.MainScreen
 import com.spendwise.app.ui.theme.SpendWiseTheme
@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         val repository = app.container.repository
 
         setContent {
-            val themeMode by repository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            val themeMode by repository.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
 
             SpendWiseTheme(themeMode = themeMode) {
                 Surface(modifier = Modifier.fillMaxSize()) {

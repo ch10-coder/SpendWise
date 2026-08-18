@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import java.text.SimpleDateFormat
@@ -28,10 +29,12 @@ class AnalyticsViewModel(
     val currencySymbol: StateFlow<String> = repository.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CurrencyOption.DEFAULT.symbol)
 
-    val monthlyAnalytics: StateFlow<MonthlyAnalytics> = selectedYear.flatMapLatest { year ->
-        selectedMonth.flatMapLatest { month ->
-            repository.getMonthlyAnalytics(year, month)
-        }
+    val monthlyAnalytics: StateFlow<MonthlyAnalytics> = combine(
+        selectedYear, selectedMonth
+    ) { year, month ->
+        Pair(year, month)
+    }.flatMapLatest { (year, month) ->
+        repository.getMonthlyAnalytics(year, month)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
@@ -47,8 +50,9 @@ class AnalyticsViewModel(
 
     fun previousMonth() {
         if (selectedMonth.value == 1) {
+            val y = selectedYear.value - 1
             selectedMonth.value = 12
-            selectedYear.value -= 1
+            selectedYear.value = y
         } else {
             selectedMonth.value -= 1
         }
@@ -56,8 +60,9 @@ class AnalyticsViewModel(
 
     fun nextMonth() {
         if (selectedMonth.value == 12) {
+            val y = selectedYear.value + 1
             selectedMonth.value = 1
-            selectedYear.value += 1
+            selectedYear.value = y
         } else {
             selectedMonth.value += 1
         }

@@ -1,5 +1,7 @@
 package com.spendwise.app.ui.screens.main
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,6 +14,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -27,22 +33,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spendwise.app.data.repository.SpendWiseRepository
+import com.spendwise.app.ui.components.BottomNavDestination
 import com.spendwise.app.ui.components.DrawerDestination
+import com.spendwise.app.ui.components.SpendWiseBottomNavBar
 import com.spendwise.app.ui.components.SpendWiseDrawerContent
+import com.spendwise.app.ui.screens.accounts.AccountsScreen
 import com.spendwise.app.ui.screens.analytics.AnalyticsScreen
 import com.spendwise.app.ui.screens.budget.BudgetScreen
 import com.spendwise.app.ui.screens.categories.CategoriesScreen
 import com.spendwise.app.ui.screens.data.DataToolsScreen
 import com.spendwise.app.ui.screens.settings.SettingsScreen
 import com.spendwise.app.ui.screens.timeline.TimelineScreen
+import com.spendwise.app.viewmodel.AccountsViewModel
 import com.spendwise.app.viewmodel.AnalyticsViewModel
 import com.spendwise.app.viewmodel.BudgetViewModel
 import com.spendwise.app.viewmodel.CategoriesViewModel
 import com.spendwise.app.viewmodel.DataToolsViewModel
 import com.spendwise.app.viewmodel.SettingsViewModel
+import com.spendwise.app.viewmodel.TagsViewModel
 import com.spendwise.app.viewmodel.TimelineViewModel
 import com.spendwise.app.viewmodel.ViewModelFactory
 import kotlinx.coroutines.launch
+
+/**
+ * Represents which screen is currently active.
+ * Bottom nav screens have their own enum, drawer screens have theirs.
+ */
+sealed class ActiveScreen {
+    data class BottomNav(val destination: BottomNavDestination) : ActiveScreen()
+    data class Drawer(val destination: DrawerDestination) : ActiveScreen()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,26 +72,44 @@ fun MainScreen(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var currentDestination by remember { mutableStateOf(DrawerDestination.TIMELINE) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var activeScreen by remember { mutableStateOf<ActiveScreen>(ActiveScreen.BottomNav(BottomNavDestination.TIMELINE)) }
 
     val factory = remember(repository) { ViewModelFactory(repository) }
 
+    // ViewModels — lazily instantiated by Compose's viewModel()
     val timelineViewModel: TimelineViewModel = viewModel(factory = factory)
     val analyticsViewModel: AnalyticsViewModel = viewModel(factory = factory)
     val budgetViewModel: BudgetViewModel = viewModel(factory = factory)
     val categoriesViewModel: CategoriesViewModel = viewModel(factory = factory)
     val dataToolsViewModel: DataToolsViewModel = viewModel(factory = factory)
     val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+    val accountsViewModel: AccountsViewModel = viewModel(factory = factory)
+    val tagsViewModel: TagsViewModel = viewModel(factory = factory)
 
     val currencySymbol by timelineViewModel.currencySymbol.collectAsState()
+
+    // Derive current title from active screen
+    val currentTitle = when (val screen = activeScreen) {
+        is ActiveScreen.BottomNav -> screen.destination.label
+        is ActiveScreen.Drawer -> screen.destination.title
+    }
+
+    // Back handler: if not on Timeline, go back to Timeline
+    BackHandler(
+        enabled = activeScreen !is ActiveScreen.BottomNav ||
+                (activeScreen as? ActiveScreen.BottomNav)?.destination != BottomNavDestination.TIMELINE
+    ) {
+        activeScreen = ActiveScreen.BottomNav(BottomNavDestination.TIMELINE)
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             SpendWiseDrawerContent(
-                currentDestination = currentDestination,
+                currentDestination = (activeScreen as? ActiveScreen.Drawer)?.destination,
                 onDestinationSelected = { destination ->
-                    currentDestination = destination
+                    activeScreen = ActiveScreen.Drawer(destination)
                     scope.launch { drawerState.close() }
                 },
                 currencySymbol = currencySymbol
@@ -83,7 +121,7 @@ fun MainScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = currentDestination.title,
+                            text = currentTitle,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -108,6 +146,16 @@ fun MainScreen(
                     )
                 )
             },
+            bottomBar = {
+                SpendWiseBottomNavBar(
+                    selectedDestination = (activeScreen as? ActiveScreen.BottomNav)?.destination
+                        ?: BottomNavDestination.TIMELINE,
+                    onDestinationSelected = { destination ->
+                        activeScreen = ActiveScreen.BottomNav(destination)
+                    }
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
             Box(
@@ -115,13 +163,27 @@ fun MainScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                when (currentDestination) {
-                    DrawerDestination.TIMELINE -> TimelineScreen(viewModel = timelineViewModel)
-                    DrawerDestination.ANALYTICS -> AnalyticsScreen(viewModel = analyticsViewModel)
-                    DrawerDestination.BUDGETS -> BudgetScreen(viewModel = budgetViewModel)
-                    DrawerDestination.CATEGORIES -> CategoriesScreen(viewModel = categoriesViewModel)
-                    DrawerDestination.DATA_TOOLS -> DataToolsScreen(viewModel = dataToolsViewModel)
-                    DrawerDestination.SETTINGS -> SettingsScreen(viewModel = settingsViewModel)
+                Crossfade(
+                    targetState = activeScreen,
+                    label = "screen_transition"
+                ) { screen ->
+                    when (screen) {
+                        is ActiveScreen.BottomNav -> when (screen.destination) {
+                            BottomNavDestination.TIMELINE -> TimelineScreen(
+                                viewModel = timelineViewModel,
+                                snackbarHostState = snackbarHostState
+                            )
+                            BottomNavDestination.ANALYTICS -> AnalyticsScreen(viewModel = analyticsViewModel)
+                            BottomNavDestination.BUDGETS -> BudgetScreen(viewModel = budgetViewModel)
+                            BottomNavDestination.ACCOUNTS -> AccountsScreen(viewModel = accountsViewModel)
+                        }
+                        is ActiveScreen.Drawer -> when (screen.destination) {
+                            DrawerDestination.CATEGORIES -> CategoriesScreen(viewModel = categoriesViewModel)
+                            DrawerDestination.TAGS -> TagsScreen(viewModel = tagsViewModel)
+                            DrawerDestination.DATA_TOOLS -> DataToolsScreen(viewModel = dataToolsViewModel)
+                            DrawerDestination.SETTINGS -> SettingsScreen(viewModel = settingsViewModel)
+                        }
+                    }
                 }
             }
         }

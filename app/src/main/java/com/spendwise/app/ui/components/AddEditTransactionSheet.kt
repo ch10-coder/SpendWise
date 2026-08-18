@@ -1,18 +1,8 @@
 package com.spendwise.app.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -24,33 +14,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,13 +25,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spendwise.app.data.local.entity.AccountEntity
 import com.spendwise.app.data.local.entity.CategoryEntity
-import com.spendwise.app.data.local.entity.TransactionEntity
+import com.spendwise.app.data.local.entity.TagEntity
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
 import com.spendwise.app.ui.theme.Emerald500
 import com.spendwise.app.ui.theme.Rose500
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 
@@ -77,7 +49,13 @@ fun AddEditTransactionSheet(
     currencySymbol: String,
     onDismiss: () -> Unit,
     onSave: (title: String, amount: Double, type: TransactionType, categoryId: Long?, dateTimestamp: Long, note: String?) -> Unit,
-    onDelete: ((Long) -> Unit)? = null
+    onDelete: ((Long) -> Unit)? = null,
+    accounts: List<AccountEntity> = emptyList(),
+    selectedAccountId: Long? = null,
+    onAccountSelected: (Long) -> Unit = {},
+    tags: List<TagEntity> = emptyList(),
+    selectedTagIds: Set<Long> = emptySet(),
+    onTagToggled: (Long) -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -87,34 +65,36 @@ fun AddEditTransactionSheet(
     var selectedCategoryId by remember { mutableStateOf(initialItem?.transaction?.categoryId) }
     var dateTimestamp by remember { mutableLongStateOf(initialItem?.transaction?.dateTimestamp ?: System.currentTimeMillis()) }
     var note by remember { mutableStateOf(initialItem?.transaction?.note ?: "") }
-    var showDatePicker by remember { mutableStateOf(false) }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     val filteredCategories = categories.filter { it.type == type }
-    val dateFormatter = SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault())
+    val dateFormatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+    val timeFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
 
-    // Auto-select first category if none selected or type changed
-    if (selectedCategoryId == null && filteredCategories.isNotEmpty()) {
-        selectedCategoryId = filteredCategories.first().id
-    } else if (selectedCategoryId != null && filteredCategories.none { it.id == selectedCategoryId }) {
-        selectedCategoryId = filteredCategories.firstOrNull()?.id
+    // Update selected category if type changes and current is invalid
+    LaunchedEffect(type) {
+        if (selectedCategoryId != null && filteredCategories.none { it.id == selectedCategoryId }) {
+            selectedCategoryId = null
+        }
     }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .verticalScroll(rememberScrollState())
         ) {
-            // Header Row
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -127,24 +107,19 @@ fun AddEditTransactionSheet(
                 )
 
                 if (initialItem != null && onDelete != null) {
-                    IconButton(
-                        onClick = {
-                            onDelete(initialItem.transaction.id)
-                            onDismiss()
-                        }
-                    ) {
+                    IconButton(onClick = { onDelete(initialItem.transaction.id); onDismiss() }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Transaction",
+                            contentDescription = "Delete",
                             tint = Rose500
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Income / Expense Toggle
+            // Transaction Type Selector
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -154,19 +129,22 @@ fun AddEditTransactionSheet(
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     colors = SegmentedButtonDefaults.colors(
                         activeContainerColor = Rose500.copy(alpha = 0.15f),
-                        activeContentColor = Rose500
+                        activeContentColor = Rose500,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
                     Text("Expense", fontWeight = FontWeight.SemiBold)
                 }
-
                 SegmentedButton(
                     selected = type == TransactionType.INCOME,
                     onClick = { type = TransactionType.INCOME },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     colors = SegmentedButtonDefaults.colors(
                         activeContainerColor = Emerald500.copy(alpha = 0.15f),
-                        activeContentColor = Emerald500
+                        activeContentColor = Emerald500,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
                     Text("Income", fontWeight = FontWeight.SemiBold)
@@ -175,7 +153,7 @@ fun AddEditTransactionSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Amount Input with large styling
+            // Amount Input
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { input ->
@@ -206,6 +184,47 @@ fun AddEditTransactionSheet(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+            
+            // Account Selector
+            if (accounts.isNotEmpty()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Account",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(accounts, key = { it.id }) { acc ->
+                            val isSelected = acc.id == selectedAccountId
+                            val accColor = CategoryIconHelper.parseColor(acc.colorHex)
+
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onAccountSelected(acc.id) },
+                                label = { Text(acc.name) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = CategoryIconHelper.getIcon(acc.iconName),
+                                        contentDescription = acc.name,
+                                        tint = if (isSelected) Color.White else accColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = accColor,
+                                    selectedLabelColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Category Selector
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -246,36 +265,97 @@ fun AddEditTransactionSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Date Picker Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .clickable { showDatePicker = true }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = "Select Date",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+            
+            // Tag Selector
+            if (tags.isNotEmpty()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = dateFormatter.format(Date(dateTimestamp)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        text = "Tags",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(tags, key = { it.id }) { tag ->
+                            val isSelected = selectedTagIds.contains(tag.id)
+                            val tagColor = CategoryIconHelper.parseColor(tag.colorHex)
+
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onTagToggled(tag.id) },
+                                label = { Text(tag.name) },
+                                leadingIcon = if (isSelected) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = tagColor.copy(alpha = 0.2f),
+                                    selectedLabelColor = tagColor
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
                 }
-                Text(
-                    text = "Change",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Date Picker Button
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable { showDatePicker = true }
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Select Date",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = dateFormatter.format(Date(dateTimestamp)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                
+                // Time Picker Button
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable { showTimePicker = true }
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = "Select Time",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = timeFormatter.format(Date(dateTimestamp)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -327,7 +407,7 @@ fun AddEditTransactionSheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                .height(52.dp),
+                    .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (type == TransactionType.EXPENSE) Rose500 else Emerald500
@@ -343,7 +423,6 @@ fun AddEditTransactionSheet(
         }
     }
 
-    // Material 3 Date Picker Dialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = dateTimestamp
@@ -353,8 +432,12 @@ fun AddEditTransactionSheet(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            dateTimestamp = it
+                        datePickerState.selectedDateMillis?.let { utcMillis ->
+                            // Convert UTC millis to local date to avoid timezone shift
+                            val utcDate = Instant.ofEpochMilli(utcMillis).atZone(ZoneId.of("UTC")).toLocalDate()
+                            val localTime = Instant.ofEpochMilli(dateTimestamp).atZone(ZoneId.systemDefault()).toLocalTime()
+                            val localDateTime = LocalDateTime.of(utcDate, localTime)
+                            dateTimestamp = localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
                         }
                         showDatePicker = false
                     }
@@ -370,5 +453,40 @@ fun AddEditTransactionSheet(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+    
+    if (showTimePicker) {
+        val localTime = Instant.ofEpochMilli(dateTimestamp).atZone(ZoneId.systemDefault()).toLocalTime()
+        val timePickerState = rememberTimePickerState(
+            initialHour = localTime.hour,
+            initialMinute = localTime.minute,
+            is24Hour = false
+        )
+        
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Select Time") },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val localDate = Instant.ofEpochMilli(dateTimestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+                        val newLocalTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                        val localDateTime = LocalDateTime.of(localDate, newLocalTime)
+                        dateTimestamp = localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        showTimePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

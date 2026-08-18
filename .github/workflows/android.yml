@@ -1,8 +1,10 @@
-name: Build SpendWise Release Bundle & APK
+name: Build & Release SpendWise APK
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -38,21 +40,47 @@ jobs:
     - name: Build Android App Bundle (.aab) for Google Play
       run: ./gradlew bundleDebug
 
-    - name: Upload Debug APK
+    - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-Debug-APK
+        name: SpendWise-v2.0-APK
         path: app/build/outputs/apk/debug/*.apk
 
     - name: Upload Google Play AAB Bundle
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-GooglePlay-AAB
+        name: SpendWise-v2.0-AAB
         path: app/build/outputs/bundle/debug/*.aab
+
+    - name: Create / Update GitHub Pre-Release with APK
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+      with:
+        tag_name: v2.0.0
+        name: "SpendWise v2.0.0 Release"
+        body: |
+          ### SpendWise v2.0.0 Update 🎉
+
+          #### ✨ What's New:
+          - 🧭 **Hybrid Navigation**: 4-Tab Bottom Navigation Bar + Utility Drawer.
+          - 💳 **Multi-Account & Transfers**: Track Cash, Bank, Credit Card, and Savings with real-time balance calculations.
+          - 🔄 **Recurring Transactions Engine**: Scheduled daily, weekly, monthly, and yearly entries.
+          - 🏷️ **Tagging System**: Custom color-coded labels and multi-tag filtering.
+          - 📅 **Date Range Filters**: All Time, This Month, Last Month, Last 3 Months, This Year, and Custom Date Range.
+          - 👁️ **Privacy Mode**: Obfuscate sensitive balance figures on demand.
+          - 🗑️ **Swipe-to-Delete**: Quick swipe with instant Undo snackbar.
+          - 🐞 **Timezone & Database Bug Fixes**: Fixed UTC datepicker shifts and Room database callback race conditions.
+        files: |
+          app/build/outputs/apk/debug/*.apk
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-pages:
     needs: build
     runs-on: ubuntu-latest
+    if: always()
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

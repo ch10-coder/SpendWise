@@ -16,7 +16,8 @@ import androidx.room.PrimaryKey
         )
     ],
     indices = [
-        Index(value = ["categoryId", "monthYear"], unique = true)
+        Index(value = ["categoryId", "monthYear"], unique = true),
+        Index("monthYear")
     ]
 )
 data class BudgetEntity(

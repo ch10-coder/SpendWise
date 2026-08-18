@@ -44,6 +44,16 @@ interface TransactionDao {
     fun getTransactionsBetweenDates(startTimestamp: Long, endTimestamp: Long): Flow<List<TransactionWithCategoryTuple>>
 
     @Query("""
+        SELECT t.*, c.id AS cat_id, c.name AS cat_name, c.type AS cat_type, 
+               c.iconName AS cat_iconName, c.colorHex AS cat_colorHex, c.isDefault AS cat_isDefault
+        FROM transactions t
+        LEFT JOIN categories c ON t.categoryId = c.id
+        WHERE t.accountId = :accountId
+        ORDER BY t.dateTimestamp DESC
+    """)
+    fun getTransactionsForAccount(accountId: Long): Flow<List<TransactionWithCategoryTuple>>
+
+    @Query("""
         SELECT SUM(amount) FROM transactions
         WHERE type = :type AND dateTimestamp BETWEEN :startTimestamp AND :endTimestamp
     """)
@@ -78,6 +88,10 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY dateTimestamp DESC")
     suspend fun getAllTransactionsList(): List<TransactionEntity>
 
+    /** Get transactions belonging to a split group */
+    @Query("SELECT * FROM transactions WHERE splitGroupId = :groupId ORDER BY dateTimestamp ASC")
+    fun getTransactionsBySplitGroup(groupId: Long): Flow<List<TransactionEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 
@@ -95,6 +109,10 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions()
+
+    /** Delete all transactions in a split group */
+    @Query("DELETE FROM transactions WHERE splitGroupId = :groupId")
+    suspend fun deleteTransactionsBySplitGroup(groupId: Long)
 }
 
 data class TransactionWithCategoryTuple(
@@ -105,6 +123,11 @@ data class TransactionWithCategoryTuple(
     val categoryId: Long?,
     val dateTimestamp: Long,
     val note: String?,
+    val accountId: Long?,
+    val toAccountId: Long?,
+    val splitGroupId: Long?,
+    val receiptPath: String?,
+    val recurringRuleId: Long?,
     val cat_id: Long?,
     val cat_name: String?,
     val cat_type: TransactionType?,
@@ -131,7 +154,12 @@ data class TransactionWithCategoryTuple(
             type = type,
             categoryId = categoryId,
             dateTimestamp = dateTimestamp,
-            note = note
+            note = note,
+            accountId = accountId,
+            toAccountId = toAccountId,
+            splitGroupId = splitGroupId,
+            receiptPath = receiptPath,
+            recurringRuleId = recurringRuleId
         )
 
         return TransactionWithCategory(transaction, category)

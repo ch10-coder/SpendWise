@@ -7,6 +7,7 @@ import com.spendwise.app.di.DefaultAppContainer
 class SpendWiseApplication : Application() {
 
     lateinit var container: AppContainer
+        private set
 
     override fun onCreate() {
         super.onCreate()

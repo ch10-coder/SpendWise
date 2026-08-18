@@ -2,13 +2,32 @@ package com.spendwise.app.model
 
 enum class TransactionType {
     EXPENSE,
-    INCOME
+    INCOME,
+    TRANSFER
 }
 
 enum class ThemeMode {
     SYSTEM,
     LIGHT,
     DARK
+}
+
+/** Account types for multi-account support */
+enum class AccountType(val displayName: String) {
+    CASH("Cash"),
+    BANK("Bank Account"),
+    CREDIT_CARD("Credit Card"),
+    SAVINGS("Savings"),
+    DIGITAL_WALLET("Digital Wallet")
+}
+
+/** Frequency options for recurring/scheduled transactions */
+enum class RecurrenceFrequency(val displayName: String) {
+    DAILY("Daily"),
+    WEEKLY("Weekly"),
+    BIWEEKLY("Bi-weekly"),
+    MONTHLY("Monthly"),
+    YEARLY("Yearly")
 }
 
 data class CurrencyOption(

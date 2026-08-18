@@ -45,22 +45,22 @@ import androidx.compose.ui.unit.sp
 import com.spendwise.app.ui.theme.Emerald500
 import com.spendwise.app.ui.theme.Emerald600
 
+import androidx.compose.material.icons.filled.Label
+
 enum class DrawerDestination(
     val title: String,
     val icon: ImageVector,
     val description: String
 ) {
-    TIMELINE("Timeline & Home", Icons.Default.ReceiptLong, "Transactions history"),
-    ANALYTICS("Analytics & Charts", Icons.Default.PieChart, "Visual breakdown"),
-    BUDGETS("Monthly Budgets", Icons.Default.Savings, "Spending limits & goals"),
     CATEGORIES("Categories", Icons.Default.Category, "Manage custom categories"),
+    TAGS("Tags", Icons.Default.Label, "Manage custom tags"),
     DATA_TOOLS("Backup & Export", Icons.Default.FileDownload, "CSV export & import"),
     SETTINGS("Settings", Icons.Default.Settings, "Currency, theme & preferences")
 }
 
 @Composable
 fun SpendWiseDrawerContent(
-    currentDestination: DrawerDestination,
+    currentDestination: DrawerDestination?,
     onDestinationSelected: (DrawerDestination) -> Unit,
     currencySymbol: String,
     modifier: Modifier = Modifier
@@ -170,7 +170,7 @@ fun SpendWiseDrawerContent(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "v1.0.0 (Offline)",
+                    text = "v2.0.0 (Offline)",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )

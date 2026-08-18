@@ -23,6 +23,16 @@ class SettingsViewModel(
     val currentThemeMode: StateFlow<ThemeMode> = repository.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.SYSTEM)
 
+    // New properties based on UserPreferencesManager enhancements
+    val isAppLockEnabled: StateFlow<Boolean> = repository.isAppLockEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val isAmoledBlack: StateFlow<Boolean> = repository.isAmoledBlack
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val dailyReminderTime: StateFlow<String?> = repository.dailyReminderTime
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     fun selectCurrency(currency: CurrencyOption) {
         viewModelScope.launch {
             repository.setCurrency(currency)
@@ -32,6 +42,24 @@ class SettingsViewModel(
     fun selectThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
             repository.setThemeMode(mode)
+        }
+    }
+
+    fun toggleAppLock(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setAppLockEnabled(enabled)
+        }
+    }
+
+    fun toggleAmoledBlack(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setAmoledBlack(enabled)
+        }
+    }
+
+    fun setDailyReminderTime(time: String?) {
+        viewModelScope.launch {
+            repository.setDailyReminderTime(time)
         }
     }
 }

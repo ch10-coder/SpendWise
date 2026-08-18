@@ -1,9 +1,6 @@
 package com.spendwise.app.ui.screens.timeline
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -21,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -33,6 +28,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,41 +38,48 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
 import com.spendwise.app.ui.components.AddEditTransactionSheet
+import com.spendwise.app.ui.components.DateRangeSelector
 import com.spendwise.app.ui.components.EmptyState
 import com.spendwise.app.ui.components.SummaryCard
 import com.spendwise.app.ui.components.TransactionItem
 import com.spendwise.app.ui.theme.Emerald500
 import com.spendwise.app.ui.theme.Rose500
 import com.spendwise.app.viewmodel.TimelineViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen(
     viewModel: TimelineViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState? = null
 ) {
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
+    val tags by viewModel.tags.collectAsState()
     val summary by viewModel.summary.collectAsState()
     val groupedTransactions by viewModel.groupedTransactions.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedTypeFilter by viewModel.selectedTypeFilter.collectAsState()
-    val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsState()
+    val isBalanceHidden by viewModel.isBalanceHidden.collectAsState()
+    val selectedDateRange by viewModel.selectedDateRange.collectAsState()
+    val customStartDate by viewModel.customStartDate.collectAsState()
+    val customEndDate by viewModel.customEndDate.collectAsState()
 
+    val scope = rememberCoroutineScope()
     var showAddEditSheet by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<TransactionWithCategory?>(null) }
-    var isSearchExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -99,17 +104,33 @@ fun TimelineScreen(
                 .padding(paddingValues),
             contentPadding = PaddingValues(bottom = 88.dp)
         ) {
-            // Balance Summary Card
+            // Balance Summary Card with Privacy Toggle
             item {
                 SummaryCard(
                     totalBalance = summary.netBalance,
                     totalIncome = summary.totalIncome,
                     totalExpense = summary.totalExpense,
-                    currencySymbol = currencySymbol
+                    currencySymbol = currencySymbol,
+                    isBalanceHidden = isBalanceHidden,
+                    onToggleHidden = viewModel::toggleBalanceHidden
                 )
             }
 
-            // Search Bar & Filter Section
+            // Date Range Filter Chips
+            item {
+                DateRangeSelector(
+                    selectedFilter = selectedDateRange,
+                    onFilterSelected = { viewModel.selectedDateRange.value = it },
+                    customStartDate = customStartDate,
+                    customEndDate = customEndDate,
+                    onCustomRangeSelected = { start, end ->
+                        viewModel.customStartDate.value = start
+                        viewModel.customEndDate.value = end
+                    }
+                )
+            }
+
+            // Search Bar & Type Filter Section
             item {
                 Column(
                     modifier = Modifier
@@ -198,7 +219,7 @@ fun TimelineScreen(
                 }
             }
 
-            // Empty State
+            // Empty State or Grouped Transactions
             if (groupedTransactions.isEmpty()) {
                 item {
                     EmptyState(
@@ -223,7 +244,6 @@ fun TimelineScreen(
             } else {
                 // Grouped Transactions List
                 groupedTransactions.forEach { (dateHeader, items) ->
-                    // Sticky / Section Date Header
                     item {
                         Surface(
                             modifier = Modifier
@@ -261,12 +281,41 @@ fun TimelineScreen(
                     }
 
                     items(items, key = { it.transaction.id }) { item ->
+                        val accountName = accounts.firstOrNull { it.id == item.transaction.accountId }?.name
                         TransactionItem(
                             item = item,
                             currencySymbol = currencySymbol,
+                            accountName = accountName,
+                            isRecurring = item.transaction.recurringRuleId != null,
+                            hasReceipt = !item.transaction.receiptPath.isNullOrBlank(),
                             onClick = {
                                 itemToEdit = item
                                 showAddEditSheet = true
+                            },
+                            onDelete = {
+                                val txToDelete = item.transaction
+                                viewModel.deleteTransaction(txToDelete.id)
+                                snackbarHostState?.let { host ->
+                                    scope.launch {
+                                        val result = host.showSnackbar(
+                                            message = "Transaction deleted",
+                                            actionLabel = "Undo",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            viewModel.addTransaction(
+                                                title = txToDelete.title,
+                                                amount = txToDelete.amount,
+                                                type = txToDelete.type,
+                                                categoryId = txToDelete.categoryId,
+                                                dateTimestamp = txToDelete.dateTimestamp,
+                                                note = txToDelete.note,
+                                                accountId = txToDelete.accountId,
+                                                toAccountId = txToDelete.toAccountId
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         )
                     }
@@ -281,24 +330,38 @@ fun TimelineScreen(
             initialItem = itemToEdit,
             categories = categories,
             currencySymbol = currencySymbol,
+            accounts = accounts,
+            selectedAccountId = itemToEdit?.transaction?.accountId ?: accounts.firstOrNull { it.isDefault }?.id,
+            tags = tags,
             onDismiss = { showAddEditSheet = false },
             onSave = { title, amount, type, categoryId, dateTimestamp, note ->
                 if (itemToEdit == null) {
-                    viewModel.addTransaction(title, amount, type, categoryId, dateTimestamp, note)
+                    viewModel.addTransaction(
+                        title = title,
+                        amount = amount,
+                        type = type,
+                        categoryId = categoryId,
+                        dateTimestamp = dateTimestamp,
+                        note = note
+                    )
                 } else {
                     viewModel.updateTransaction(
-                        itemToEdit!!.transaction.id,
-                        title,
-                        amount,
-                        type,
-                        categoryId,
-                        dateTimestamp,
-                        note
+                        id = itemToEdit!!.transaction.id,
+                        title = title,
+                        amount = amount,
+                        type = type,
+                        categoryId = categoryId,
+                        dateTimestamp = dateTimestamp,
+                        note = note,
+                        accountId = itemToEdit!!.transaction.accountId,
+                        toAccountId = itemToEdit!!.transaction.toAccountId
                     )
                 }
+                showAddEditSheet = false
             },
             onDelete = { id ->
                 viewModel.deleteTransaction(id)
+                showAddEditSheet = false
             }
         )
     }

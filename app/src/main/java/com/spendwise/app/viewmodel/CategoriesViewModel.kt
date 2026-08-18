@@ -21,6 +21,9 @@ class CategoriesViewModel(
 
     val selectedType = MutableStateFlow(TransactionType.EXPENSE)
 
+    private val _pendingDeleteCategory = MutableStateFlow<CategoryEntity?>(null)
+    val pendingDeleteCategory = _pendingDeleteCategory.asStateFlow()
+
     fun onTypeSelected(type: TransactionType) {
         selectedType.value = type
     }
@@ -55,8 +58,18 @@ class CategoriesViewModel(
     }
 
     fun deleteCategory(category: CategoryEntity) {
+        _pendingDeleteCategory.value = category
+    }
+
+    fun confirmDeleteCategory() {
+        val category = _pendingDeleteCategory.value ?: return
         viewModelScope.launch {
             repository.deleteCategory(category)
+            _pendingDeleteCategory.value = null
         }
+    }
+
+    fun cancelDeleteCategory() {
+        _pendingDeleteCategory.value = null
     }
 }

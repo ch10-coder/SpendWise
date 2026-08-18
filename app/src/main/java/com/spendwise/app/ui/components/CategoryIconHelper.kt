@@ -1,28 +1,7 @@
 package com.spendwise.app.ui.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.CardGiftcard
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Laptop
-import androidx.compose.material.icons.filled.LocalCafe
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Pets
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -48,7 +27,37 @@ object CategoryIconHelper {
         "CardGiftcard" to Icons.Default.CardGiftcard,
         "Payments" to Icons.Default.Payments,
         "AccountBalance" to Icons.Default.AccountBalance,
-        "AttachMoney" to Icons.Default.AttachMoney
+        "AttachMoney" to Icons.Default.AttachMoney,
+        // Added icons
+        "Subscriptions" to Icons.Default.Subscriptions,
+        "CreditCard" to Icons.Default.CreditCard,
+        "Savings" to Icons.Default.Savings,
+        "ChildCare" to Icons.Default.ChildCare,
+        "Star" to Icons.Default.Star,
+        "Favorite" to Icons.Default.Favorite,
+        "Work" to Icons.Default.Work,
+        "LocalGroceryStore" to Icons.Default.LocalGroceryStore,
+        "LocalPharmacy" to Icons.Default.LocalPharmacy,
+        "LocalBar" to Icons.Default.LocalBar,
+        "Sports" to Icons.Default.Sports,
+        "Brush" to Icons.Default.Brush,
+        "Build" to Icons.Default.Build,
+        "PhoneAndroid" to Icons.Default.PhoneAndroid,
+        "Cloud" to Icons.Default.Cloud,
+        "Security" to Icons.Default.Security,
+        "VolunteerActivism" to Icons.Default.VolunteerActivism,
+        "Celebration" to Icons.Default.Celebration,
+        "Checkroom" to Icons.Default.Checkroom,
+        "Coffee" to Icons.Default.LocalCafe,
+        "Pool" to Icons.Default.Pool,
+        "MedicalServices" to Icons.Default.MedicalServices,
+        "ElectricBolt" to Icons.Default.ElectricBolt,
+        "WaterDrop" to Icons.Default.WaterDrop,
+        "Garage" to Icons.Default.Garage,
+        "Chair" to Icons.Default.Chair,
+        "Microwave" to Icons.Default.Microwave,
+        "SelfImprovement" to Icons.Default.SelfImprovement,
+        "Commute" to Icons.Default.Commute
     )
 
     fun getIcon(name: String): ImageVector {

@@ -35,3 +35,5 @@ val LightSurfaceElevated = Color(0xFFF1F5F9)   // Slate 100
 val LightBorder = Color(0xFFE2E8F0)            // Slate 200
 val LightTextPrimary = Color(0xFF0F172A)       // Slate 900
 val LightTextSecondary = Color(0xFF64748B)     // Slate 500
+
+val AmoledBlack = Color(0xFF000000)

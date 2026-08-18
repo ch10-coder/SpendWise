@@ -39,6 +39,12 @@ class TagsViewModel(
         }
     }
 
+    fun updateTag(tag: TagEntity) {
+        viewModelScope.launch {
+            repository.updateTag(tag)
+        }
+    }
+
     fun deleteTag(tag: TagEntity) {
         viewModelScope.launch {
             repository.deleteTag(tag)

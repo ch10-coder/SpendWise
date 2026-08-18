@@ -55,22 +55,32 @@ class TimelineViewModel(
     val selectedTypeFilter = MutableStateFlow<TransactionType?>(null)
     val selectedCategoryFilter = MutableStateFlow<Long?>(null)
 
+    private data class FilterParams(
+        val dateRange: DateRangeFilter,
+        val customStart: Long?,
+        val customEnd: Long?,
+        val query: String,
+        val typeFilter: TransactionType?,
+        val categoryFilter: Long?
+    )
+
+    private val filterParams: kotlinx.coroutines.flow.Flow<FilterParams> = combine(
+        combine(selectedDateRange, customStartDate, customEndDate) { range, start, end -> Triple(range, start, end) },
+        combine(searchQuery, selectedTypeFilter, selectedCategoryFilter) { q, t, c -> Triple(q, t, c) }
+    ) { (range, start, end), (q, t, c) ->
+        FilterParams(range, start, end, q, t, c)
+    }
+
     private val allTransactions = repository.getAllTransactionsWithCategory()
 
     val filteredTransactions: StateFlow<List<TransactionWithCategory>> = combine(
         allTransactions,
-        selectedDateRange,
-        customStartDate,
-        customEndDate,
-        searchQuery,
-        selectedTypeFilter,
-        selectedCategoryFilter
-    ) { transactions, range, start, end, query, typeFilter, catFilter ->
-        
+        filterParams
+    ) { transactions, filters ->
         val zone = ZoneId.systemDefault()
         val now = LocalDate.now(zone)
 
-        val (rangeStart, rangeEnd) = when (range) {
+        val (rangeStart, rangeEnd) = when (filters.dateRange) {
             DateRangeFilter.ALL_TIME -> Pair(0L, Long.MAX_VALUE)
             DateRangeFilter.THIS_MONTH -> {
                 val s = now.withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
@@ -95,21 +105,21 @@ class TimelineViewModel(
                 Pair(s, e)
             }
             DateRangeFilter.CUSTOM -> {
-                Pair(start ?: 0L, end ?: Long.MAX_VALUE)
+                Pair(filters.customStart ?: 0L, filters.customEnd ?: Long.MAX_VALUE)
             }
         }
 
         transactions.filter { item ->
             val d = item.transaction.dateTimestamp
             val matchesDate = d in rangeStart..rangeEnd
-            
-            val matchesQuery = query.isBlank() ||
-                    item.transaction.title.contains(query, ignoreCase = true) ||
-                    (item.transaction.note?.contains(query, ignoreCase = true) == true) ||
-                    (item.category?.name?.contains(query, ignoreCase = true) == true)
 
-            val matchesType = typeFilter == null || item.transaction.type == typeFilter
-            val matchesCategory = catFilter == null || item.transaction.categoryId == catFilter
+            val matchesQuery = filters.query.isBlank() ||
+                    item.transaction.title.contains(filters.query, ignoreCase = true) ||
+                    (item.transaction.note?.contains(filters.query, ignoreCase = true) == true) ||
+                    (item.category?.name?.contains(filters.query, ignoreCase = true) == true)
+
+            val matchesType = filters.typeFilter == null || item.transaction.type == filters.typeFilter
+            val matchesCategory = filters.categoryFilter == null || item.transaction.categoryId == filters.categoryFilter
 
             matchesDate && matchesQuery && matchesType && matchesCategory
         }

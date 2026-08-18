@@ -43,6 +43,7 @@ import com.spendwise.app.ui.screens.budget.BudgetScreen
 import com.spendwise.app.ui.screens.categories.CategoriesScreen
 import com.spendwise.app.ui.screens.data.DataToolsScreen
 import com.spendwise.app.ui.screens.settings.SettingsScreen
+import com.spendwise.app.ui.screens.tags.TagsScreen
 import com.spendwise.app.ui.screens.timeline.TimelineScreen
 import com.spendwise.app.viewmodel.AccountsViewModel
 import com.spendwise.app.viewmodel.AnalyticsViewModel
@@ -91,7 +92,7 @@ fun MainScreen(
 
     // Derive current title from active screen
     val currentTitle = when (val screen = activeScreen) {
-        is ActiveScreen.BottomNav -> screen.destination.label
+        is ActiveScreen.BottomNav -> screen.destination.title
         is ActiveScreen.Drawer -> screen.destination.title
     }
 
@@ -148,7 +149,7 @@ fun MainScreen(
             },
             bottomBar = {
                 SpendWiseBottomNavBar(
-                    selectedDestination = (activeScreen as? ActiveScreen.BottomNav)?.destination
+                    currentDestination = (activeScreen as? ActiveScreen.BottomNav)?.destination
                         ?: BottomNavDestination.TIMELINE,
                     onDestinationSelected = { destination ->
                         activeScreen = ActiveScreen.BottomNav(destination)

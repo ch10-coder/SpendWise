@@ -28,10 +28,10 @@ class AccountsViewModel(
     fun addAccount(
         name: String,
         type: AccountType,
-        balance: Double,
-        iconName: String,
-        colorHex: String,
-        isDefault: Boolean
+        iconName: String = "AccountBalanceWallet",
+        colorHex: String = "#10B981",
+        balance: Double = 0.0,
+        isDefault: Boolean = false
     ) {
         viewModelScope.launch {
             repository.insertAccount(
@@ -45,6 +45,17 @@ class AccountsViewModel(
                 )
             )
         }
+    }
+
+    fun addAccount(
+        name: String,
+        type: AccountType,
+        balance: Double,
+        iconName: String,
+        colorHex: String,
+        isDefault: Boolean
+    ) {
+        addAccount(name, type, iconName, colorHex, balance, isDefault)
     }
 
     fun updateAccount(

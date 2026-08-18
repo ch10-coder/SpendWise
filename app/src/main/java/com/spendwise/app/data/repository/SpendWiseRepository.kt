@@ -27,6 +27,7 @@ import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.InputStream
 import java.io.OutputStream
@@ -258,7 +259,7 @@ class SpendWiseRepository(
         val prevDate = LocalDate.of(year, month, 1).minusMonths(1)
         val prevMonthYear = String.format(Locale.US, "%04d-%02d", prevDate.year, prevDate.monthValue)
         
-        val prevBudgets = kotlinx.coroutines.flow.first(budgetDao.getBudgetsForMonth(prevMonthYear))
+        val prevBudgets = budgetDao.getBudgetsForMonth(prevMonthYear).first()
         for (budgetTuple in prevBudgets) {
             setBudget(budgetTuple.categoryId, budgetTuple.limitAmount, currentMonthYear)
         }

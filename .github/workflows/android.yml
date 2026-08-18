@@ -29,16 +29,22 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: 8.10.2
+
+    - name: Generate and Validate Gradle Wrapper
+      run: |
+        gradle wrapper
+        chmod +x gradlew
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug --stacktrace
 
     - name: Build Android App Bundle (.aab) for Google Play
-      run: ./gradlew bundleDebug
+      run: ./gradlew bundleDebug --stacktrace
 
     - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
@@ -52,24 +58,24 @@ jobs:
         name: SpendWise-v2.0-AAB
         path: app/build/outputs/bundle/debug/*.aab
 
-    - name: Create / Update GitHub Pre-Release with APK
+    - name: Create / Update GitHub Release with APK
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
       with:
         tag_name: v2.0.0
         name: "SpendWise v2.0.0 Release"
         body: |
-          ### SpendWise v2.0.0 Update 🎉
+          ### SpendWise v2.0.0 Release 🚀
 
-          #### ✨ What's New:
-          - 🧭 **Hybrid Navigation**: 4-Tab Bottom Navigation Bar + Utility Drawer.
-          - 💳 **Multi-Account & Transfers**: Track Cash, Bank, Credit Card, and Savings with real-time balance calculations.
-          - 🔄 **Recurring Transactions Engine**: Scheduled daily, weekly, monthly, and yearly entries.
+          #### ✨ Features & Improvements:
+          - 🧭 **Hybrid Navigation**: 4-Tab Bottom Navigation Bar (Home, Analytics, Budgets, Accounts) + Utility Drawer.
+          - 💳 **Multi-Account & Transfers**: Support for Cash, Bank, Credit Card, Savings with real-time dynamic balance updates.
+          - 🔄 **Recurring Transactions Engine**: Scheduled daily, weekly, monthly, and yearly transactions.
           - 🏷️ **Tagging System**: Custom color-coded labels and multi-tag filtering.
-          - 📅 **Date Range Filters**: All Time, This Month, Last Month, Last 3 Months, This Year, and Custom Date Range.
-          - 👁️ **Privacy Mode**: Obfuscate sensitive balance figures on demand.
+          - 📅 **Date Range Filters**: All Time, This Month, Last Month, Last 3 Months, This Year, and Custom DateRangePicker.
+          - 👁️ **Privacy Mode**: Balance obfuscation toggle (••••••) on SummaryCard.
           - 🗑️ **Swipe-to-Delete**: Quick swipe with instant Undo snackbar.
-          - 🐞 **Timezone & Database Bug Fixes**: Fixed UTC datepicker shifts and Room database callback race conditions.
+          - 🐞 **Timezone & Database Bug Fixes**: Fixed UTC datepicker shift and Room database callback race conditions.
         files: |
           app/build/outputs/apk/debug/*.apk
         draft: false

@@ -63,6 +63,8 @@ class SpendWiseRepository(
     val currencyCode: Flow<String> = preferencesManager.currencyCodeFlow
     val currencySymbol: Flow<String> = preferencesManager.currencySymbolFlow
     val themeMode: Flow<ThemeMode> = preferencesManager.themeModeFlow
+    val themePalette: Flow<com.spendwise.app.model.ThemePalette> = preferencesManager.themePaletteFlow
+    val isDynamicColor: Flow<Boolean> = preferencesManager.isDynamicColorFlow
     val isBalanceHidden: Flow<Boolean> = preferencesManager.isBalanceHiddenFlow
     val isAppLockEnabled: Flow<Boolean> = preferencesManager.isAppLockEnabledFlow
     val isAmoledBlack: Flow<Boolean> = preferencesManager.isAmoledBlackFlow
@@ -70,6 +72,8 @@ class SpendWiseRepository(
 
     suspend fun setCurrency(currencyOption: CurrencyOption) = preferencesManager.setCurrency(currencyOption)
     suspend fun setThemeMode(mode: ThemeMode) = preferencesManager.setThemeMode(mode)
+    suspend fun setThemePalette(palette: com.spendwise.app.model.ThemePalette) = preferencesManager.setThemePalette(palette)
+    suspend fun setDynamicColor(enabled: Boolean) = preferencesManager.setDynamicColor(enabled)
     suspend fun setBalanceHidden(hidden: Boolean) = preferencesManager.setBalanceHidden(hidden)
     suspend fun setAppLockEnabled(enabled: Boolean) = preferencesManager.setAppLockEnabled(enabled)
     suspend fun setAmoledBlack(enabled: Boolean) = preferencesManager.setAmoledBlack(enabled)

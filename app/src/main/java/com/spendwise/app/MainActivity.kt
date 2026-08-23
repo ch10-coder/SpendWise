@@ -24,8 +24,16 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeMode by repository.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+            val themePalette by repository.themePalette.collectAsStateWithLifecycle(initialValue = com.spendwise.app.model.ThemePalette.EMERALD)
+            val isAmoledBlack by repository.isAmoledBlack.collectAsStateWithLifecycle(initialValue = false)
+            val isDynamicColor by repository.isDynamicColor.collectAsStateWithLifecycle(initialValue = false)
 
-            SpendWiseTheme(themeMode = themeMode) {
+            SpendWiseTheme(
+                themeMode = themeMode,
+                themePalette = themePalette,
+                isAmoledBlack = isAmoledBlack,
+                dynamicColor = isDynamicColor
+            ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     MainScreen(repository = repository)
                 }

@@ -23,6 +23,12 @@ class SettingsViewModel(
     val currentThemeMode: StateFlow<ThemeMode> = repository.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.SYSTEM)
 
+    val currentThemePalette: StateFlow<com.spendwise.app.model.ThemePalette> = repository.themePalette
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.spendwise.app.model.ThemePalette.EMERALD)
+
+    val isDynamicColor: StateFlow<Boolean> = repository.isDynamicColor
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     // New properties based on UserPreferencesManager enhancements
     val isAppLockEnabled: StateFlow<Boolean> = repository.isAppLockEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -42,6 +48,18 @@ class SettingsViewModel(
     fun selectThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
             repository.setThemeMode(mode)
+        }
+    }
+
+    fun selectThemePalette(palette: com.spendwise.app.model.ThemePalette) {
+        viewModelScope.launch {
+            repository.setThemePalette(palette)
+        }
+    }
+
+    fun toggleDynamicColor(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setDynamicColor(enabled)
         }
     }
 

@@ -12,6 +12,21 @@ enum class ThemeMode {
     DARK
 }
 
+/** Visual theme color palettes */
+enum class ThemePalette(
+    val displayName: String,
+    val primaryColorHex: String,
+    val description: String
+) {
+    EMERALD("Emerald Wealth", "#10B981", "Classic money green and fresh accents"),
+    OCEAN("Ocean Sapphire", "#2563EB", "Deep calming blues and crisp slate"),
+    AMETHYST("Midnight Amethyst", "#8B5CF6", "Vibrant purple and neon violet"),
+    SUNSET("Golden Sunset", "#F59E0B", "Warm amber and bright gold tones"),
+    ROSE("Crimson Rose", "#E11D48", "Bold ruby red and warm coral"),
+    NORDIC("Nordic Teal", "#0D9488", "Clean scandinavian teal and forest accents"),
+    CYBERPUNK("Cyber Cyan", "#06B6D4", "High-tech electric cyan and deep carbon")
+}
+
 /** Account types for multi-account support */
 enum class AccountType(val displayName: String) {
     CASH("Cash"),

@@ -23,6 +23,8 @@ class UserPreferencesManager(private val context: Context) {
         val CURRENCY_CODE = stringPreferencesKey("currency_code")
         val CURRENCY_SYMBOL = stringPreferencesKey("currency_symbol")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val THEME_PALETTE = stringPreferencesKey("theme_palette")
+        val IS_DYNAMIC_COLOR = booleanPreferencesKey("is_dynamic_color")
         val IS_BALANCE_HIDDEN = booleanPreferencesKey("is_balance_hidden")
         val IS_APP_LOCK_ENABLED = booleanPreferencesKey("is_app_lock_enabled")
         val IS_AMOLED_BLACK = booleanPreferencesKey("is_amoled_black")
@@ -52,6 +54,23 @@ class UserPreferencesManager(private val context: Context) {
             } catch (e: Exception) {
                 ThemeMode.SYSTEM
             }
+        }
+
+    val themePaletteFlow: Flow<com.spendwise.app.model.ThemePalette> = dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { preferences ->
+            val rawPalette = preferences[PreferencesKeys.THEME_PALETTE] ?: com.spendwise.app.model.ThemePalette.EMERALD.name
+            try {
+                com.spendwise.app.model.ThemePalette.valueOf(rawPalette)
+            } catch (e: Exception) {
+                com.spendwise.app.model.ThemePalette.EMERALD
+            }
+        }
+
+    val isDynamicColorFlow: Flow<Boolean> = dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { preferences ->
+            preferences[PreferencesKeys.IS_DYNAMIC_COLOR] ?: false
         }
 
     val isBalanceHiddenFlow: Flow<Boolean> = dataStore.data
@@ -88,6 +107,18 @@ class UserPreferencesManager(private val context: Context) {
     suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode.name
+        }
+    }
+
+    suspend fun setThemePalette(palette: com.spendwise.app.model.ThemePalette) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.THEME_PALETTE] = palette.name
+        }
+    }
+
+    suspend fun setDynamicColor(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_DYNAMIC_COLOR] = enabled
         }
     }
 

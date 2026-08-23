@@ -52,6 +52,7 @@ enum class DrawerDestination(
     val icon: ImageVector,
     val description: String
 ) {
+    SAVINGS_GOALS("Savings Goals", Icons.Default.Savings, "Track progress toward financial targets"),
     CATEGORIES("Categories", Icons.Default.Category, "Manage custom categories"),
     TAGS("Tags", Icons.Default.Label, "Manage custom tags"),
     DATA_TOOLS("Backup & Export", Icons.Default.FileDownload, "CSV export & import"),

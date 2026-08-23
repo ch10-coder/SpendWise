@@ -43,6 +43,9 @@ data class MonthlySummary(
     val netBalance: Double
 )
 
+import com.spendwise.app.data.local.dao.SavingsGoalDao
+import com.spendwise.app.data.local.entity.SavingsGoalEntity
+
 class SpendWiseRepository(
     private val transactionDao: TransactionDao,
     private val categoryDao: CategoryDao,
@@ -50,6 +53,7 @@ class SpendWiseRepository(
     private val accountDao: AccountDao,
     private val tagDao: TagDao,
     private val recurringTransactionDao: RecurringTransactionDao,
+    private val savingsGoalDao: SavingsGoalDao,
     private val preferencesManager: UserPreferencesManager,
     private val csvService: CsvService,
     private val recurringTransactionService: RecurringTransactionService
@@ -195,6 +199,15 @@ class SpendWiseRepository(
     suspend fun processRecurringTransactions() {
         recurringTransactionService.processRecurringTransactions()
     }
+
+    // Savings Goals
+    fun getAllSavingsGoals(): Flow<List<SavingsGoalEntity>> = savingsGoalDao.getAllGoals()
+    suspend fun insertSavingsGoal(goal: SavingsGoalEntity): Long = savingsGoalDao.insertGoal(goal)
+    suspend fun updateSavingsGoal(goal: SavingsGoalEntity) = savingsGoalDao.updateGoal(goal)
+    suspend fun deleteSavingsGoal(goal: SavingsGoalEntity) = savingsGoalDao.deleteGoal(goal)
+    suspend fun deleteSavingsGoalById(id: Long) = savingsGoalDao.deleteGoalById(id)
+    suspend fun depositToSavingsGoal(id: Long, amount: Double) = savingsGoalDao.deposit(id, amount)
+    suspend fun withdrawFromSavingsGoal(id: Long, amount: Double) = savingsGoalDao.withdraw(id, amount)
 
     // Categories
     fun getAllCategories(): Flow<List<CategoryEntity>> = categoryDao.getAllCategories()

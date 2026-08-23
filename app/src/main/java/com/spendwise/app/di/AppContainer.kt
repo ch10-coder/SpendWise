@@ -50,6 +50,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             accountDao = database.accountDao(),
             tagDao = database.tagDao(),
             recurringTransactionDao = database.recurringTransactionDao(),
+            savingsGoalDao = database.savingsGoalDao(),
             preferencesManager = userPreferencesManager,
             csvService = csvService,
             recurringTransactionService = recurringTransactionService

@@ -42,6 +42,7 @@ import com.spendwise.app.ui.screens.analytics.AnalyticsScreen
 import com.spendwise.app.ui.screens.budget.BudgetScreen
 import com.spendwise.app.ui.screens.categories.CategoriesScreen
 import com.spendwise.app.ui.screens.data.DataToolsScreen
+import com.spendwise.app.ui.screens.goals.SavingsGoalsScreen
 import com.spendwise.app.ui.screens.settings.SettingsScreen
 import com.spendwise.app.ui.screens.tags.TagsScreen
 import com.spendwise.app.ui.screens.timeline.TimelineScreen
@@ -50,6 +51,7 @@ import com.spendwise.app.viewmodel.AnalyticsViewModel
 import com.spendwise.app.viewmodel.BudgetViewModel
 import com.spendwise.app.viewmodel.CategoriesViewModel
 import com.spendwise.app.viewmodel.DataToolsViewModel
+import com.spendwise.app.viewmodel.SavingsGoalsViewModel
 import com.spendwise.app.viewmodel.SettingsViewModel
 import com.spendwise.app.viewmodel.TagsViewModel
 import com.spendwise.app.viewmodel.TimelineViewModel
@@ -87,6 +89,7 @@ fun MainScreen(
     val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
     val accountsViewModel: AccountsViewModel = viewModel(factory = factory)
     val tagsViewModel: TagsViewModel = viewModel(factory = factory)
+    val savingsGoalsViewModel: SavingsGoalsViewModel = viewModel(factory = factory)
 
     val currencySymbol by timelineViewModel.currencySymbol.collectAsState()
 
@@ -179,6 +182,7 @@ fun MainScreen(
                             BottomNavDestination.ACCOUNTS -> AccountsScreen(viewModel = accountsViewModel)
                         }
                         is ActiveScreen.Drawer -> when (screen.destination) {
+                            DrawerDestination.SAVINGS_GOALS -> SavingsGoalsScreen(viewModel = savingsGoalsViewModel)
                             DrawerDestination.CATEGORIES -> CategoriesScreen(viewModel = categoriesViewModel)
                             DrawerDestination.TAGS -> TagsScreen(viewModel = tagsViewModel)
                             DrawerDestination.DATA_TOOLS -> DataToolsScreen(viewModel = dataToolsViewModel)

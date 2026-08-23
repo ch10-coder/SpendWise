@@ -85,6 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun tagDao(): TagDao
     abstract fun recurringTransactionDao(): RecurringTransactionDao
+    abstract fun savingsGoalDao(): com.spendwise.app.data.local.dao.SavingsGoalDao
 
     companion object {
         @Volatile

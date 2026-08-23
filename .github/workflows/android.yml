@@ -23,12 +23,37 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
+
+    - name: Ensure Permanent Keystore Exists
+      run: |
+        if [ ! -f app/spendwise.keystore ]; then
+          echo "Generating permanent SpendWise keystore..."
+          keytool -genkeypair -v \
+            -keystore app/spendwise.keystore \
+            -alias spendwisekey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass spendwisepassword \
+            -keypass spendwisepassword \
+            -dname "CN=SpendWise, OU=Mobile, O=SpendWise, L=Global, ST=Global, C=US"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/spendwise.keystore
+          git commit -m "ci: commit permanent spendwise.keystore for persistent signature updates [skip ci]" || true
+          git push origin main || true
+        else
+          echo "Permanent keystore already exists. Using existing signature certificate."
+        fi
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
@@ -49,13 +74,13 @@ jobs:
     - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.0-APK
+        name: SpendWise-v2.1.0-APK
         path: app/build/outputs/apk/debug/*.apk
 
     - name: Upload Google Play AAB Bundle
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.0-AAB
+        name: SpendWise-v2.1.0-AAB
         path: app/build/outputs/bundle/debug/*.aab
 
     - name: Create / Update GitHub Release with APK
@@ -72,7 +97,7 @@ jobs:
           - 💰 **Deposit & Withdraw Flows**: Direct one-tap savings deposits and withdrawals.
           - 📅 **Target Date Timeline**: Deadline tracking with dynamic remaining-days countdown.
           - 🧭 **Quick Drawer Access**: Easily access Savings Goals right from the navigation drawer.
-          - 🔒 **Privacy Mode Support**: Obfuscate savings figures when eye toggle is active.
+          - 🔑 **Permanent Cryptographic Signature**: Every future APK update now shares the exact same persistent keystore certificate for seamless in-place updates.
         files: |
           app/build/outputs/apk/debug/*.apk
         draft: false

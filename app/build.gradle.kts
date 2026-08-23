@@ -22,10 +22,29 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("spendwise.keystore")
+            storePassword = "spendwisepassword"
+            keyAlias = "spendwisekey"
+            keyPassword = "spendwisepassword"
+        }
+        getByName("debug") {
+            storeFile = file("spendwise.keystore")
+            storePassword = "spendwisepassword"
+            keyAlias = "spendwisekey"
+            keyPassword = "spendwisepassword"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

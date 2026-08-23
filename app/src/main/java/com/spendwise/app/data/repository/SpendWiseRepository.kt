@@ -37,14 +37,14 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.util.Locale
 
+import com.spendwise.app.data.local.dao.SavingsGoalDao
+import com.spendwise.app.data.local.entity.SavingsGoalEntity
+
 data class MonthlySummary(
     val totalIncome: Double,
     val totalExpense: Double,
     val netBalance: Double
 )
-
-import com.spendwise.app.data.local.dao.SavingsGoalDao
-import com.spendwise.app.data.local.entity.SavingsGoalEntity
 
 class SpendWiseRepository(
     private val transactionDao: TransactionDao,

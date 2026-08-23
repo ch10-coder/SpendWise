@@ -1,6 +1,7 @@
 package com.spendwise.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -9,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,34 +44,53 @@ fun TransactionItem(
     val transaction = item.transaction
     val category = item.category
     val isIncome = transaction.type == TransactionType.INCOME
-    val amountPrefix = if (isIncome) "+" else "-"
-    val amountColor = if (isIncome) Emerald500 else Rose500
+    val isTransfer = transaction.type == TransactionType.TRANSFER
+
+    val amountPrefix = when {
+        isTransfer -> "⇄ "
+        isIncome -> "+"
+        else -> "-"
+    }
+    val amountColor = when {
+        isTransfer -> MaterialTheme.colorScheme.primary
+        isIncome -> Emerald500
+        else -> Rose500
+    }
 
     val categoryColor = category?.let { CategoryIconHelper.parseColor(it.colorHex) } ?: MaterialTheme.colorScheme.primary
-    val categoryIcon = category?.let { CategoryIconHelper.getIcon(it.iconName) } ?: CategoryIconHelper.getIcon("ShoppingCart")
+    val categoryIcon = when {
+        isTransfer -> Icons.Default.SwapHoriz
+        else -> category?.let { CategoryIconHelper.getIcon(it.iconName) } ?: CategoryIconHelper.getIcon("ShoppingCart")
+    }
 
     val timeFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
     val timeStr = timeFormatter.format(Date(transaction.dateTimestamp))
 
     val content = @Composable {
-        Surface(
+        Card(
             modifier = modifier
                 .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
                 .clickable(onClick = onClick),
-            color = MaterialTheme.colorScheme.surface
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Category Icon Badge
+                // Category Icon Badge with subtle glowing ring
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(categoryColor.copy(alpha = 0.15f)),
+                        .background(categoryColor.copy(alpha = 0.12f))
+                        .border(1.dp, categoryColor.copy(alpha = 0.25f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -82,7 +103,7 @@ fun TransactionItem(
 
                 Spacer(modifier = Modifier.width(14.dp))
 
-                // Title, Category & Note
+                // Title, Category & Badges
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
@@ -90,7 +111,7 @@ fun TransactionItem(
                         Text(
                             text = transaction.title,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -101,8 +122,8 @@ fun TransactionItem(
                             Icon(
                                 imageVector = Icons.Default.Autorenew,
                                 contentDescription = "Recurring",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                         if (hasReceipt) {
@@ -110,17 +131,19 @@ fun TransactionItem(
                             Icon(
                                 imageVector = Icons.Default.AttachFile,
                                 contentDescription = "Has Receipt",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                     }
                     
+                    Spacer(modifier = Modifier.height(2.dp))
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = category?.name ?: "Uncategorized",
+                            text = category?.name ?: if (isTransfer) "Transfer" else "General",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -137,16 +160,17 @@ fun TransactionItem(
                     }
                     
                     if (accountName != null) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(4.dp)
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
                                 text = accountName,
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                     }
@@ -161,13 +185,14 @@ fun TransactionItem(
                     Text(
                         text = "$amountPrefix$currencySymbol${String.format(Locale.US, "%,.2f", transaction.amount)}",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = amountColor
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = timeStr,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -190,20 +215,19 @@ fun TransactionItem(
             state = dismissState,
             enableDismissFromStartToEnd = false,
             backgroundContent = {
-                val color = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                    MaterialTheme.colorScheme.errorContainer
-                } else {
-                    Color.Transparent
-                }
+                val isSwiping = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+                val color = if (isSwiping) MaterialTheme.colorScheme.errorContainer else Color.Transparent
                 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(color)
                         .padding(horizontal = 20.dp),
                     contentAlignment = Alignment.CenterEnd
                 ) {
-                    if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                    if (isSwiping) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",

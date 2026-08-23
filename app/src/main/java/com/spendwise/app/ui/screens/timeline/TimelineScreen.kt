@@ -245,36 +245,37 @@ fun TimelineScreen(
                 // Grouped Transactions List
                 groupedTransactions.forEach { (dateHeader, items) ->
                     item {
-                        Surface(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            color = Color.Transparent
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Text(
+                                text = dateHeader,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            val dayTotal = items.sumOf {
+                                if (it.transaction.type == TransactionType.INCOME) it.transaction.amount else -it.transaction.amount
+                            }
+                            val formattedDayTotal = String.format(java.util.Locale.US, "%,.2f", dayTotal)
+                            val dayPrefix = if (dayTotal >= 0) "+$currencySymbol" else "-$currencySymbol"
+                            val dayColor = if (dayTotal >= 0) Emerald500 else Rose500
+
+                            Surface(
+                                color = dayColor.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = dateHeader,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-
-                                val dayTotal = items.sumOf {
-                                    if (it.transaction.type == TransactionType.INCOME) it.transaction.amount else -it.transaction.amount
-                                }
-                                val formattedDayTotal = String.format(java.util.Locale.US, "%,.2f", dayTotal)
-                                val dayPrefix = if (dayTotal >= 0) "+$currencySymbol" else "-$currencySymbol"
-                                val dayColor = if (dayTotal >= 0) Emerald500 else Rose500
-
-                                Text(
                                     text = "$dayPrefix${formattedDayTotal.replace("-", "")}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = dayColor
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = dayColor,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
                         }

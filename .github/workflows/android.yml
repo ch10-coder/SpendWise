@@ -87,17 +87,17 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
       with:
-        tag_name: v2.2.0
-        name: "SpendWise v2.2.0 Release"
+        tag_name: v2.3.0
+        name: "SpendWise v2.3.0 Frontend Design Overhaul"
         body: |
-          ### SpendWise v2.2.0 Theme & Design Overhaul 🎨
+          ### SpendWise v2.3.0 Frontend Design Overhaul 💎
 
-          #### ✨ What's New in v2.2.0:
-          - 🎨 **7 Color Theme Palettes**: Emerald Wealth, Ocean Sapphire, Midnight Amethyst, Golden Sunset, Crimson Rose, Nordic Teal, Cyber Cyan.
-          - 🖤 **AMOLED Pure Black Mode**: True `#000000` dark surfaces for battery savings and crisp contrast.
-          - 🌈 **Material You Dynamic Theming**: Android 12+ system wallpaper color harmonization.
-          - 🎯 **Savings Goals Integration**: Visual targets, deposits/withdrawals, and deadline tracking.
-          - 🔑 **Guaranteed In-Place Updates**: Permanent keystore certificate ensures all future builds update seamlessly.
+          #### ✨ Design Upgrades & Polish:
+          - 💳 **Fintech Glassmorphic Hero Card**: Redesigned summary card with Cash Inflow/Outflow glass metrics and dynamic Cashflow Ratio health bar.
+          - 🧾 **Modern Transaction Cards**: Elevated surface cards with glowing category ring badges, micro-account labels, and smooth swipe-to-delete.
+          - 🧭 **Floating Dock Bottom Navigation**: Elevated floating pill navigation bar with active spring indicators.
+          - 📅 **Elevated Date Headers**: Clean day labels with real-time net daily cashflow pill badges (`+$45.00` / `-$12.50`).
+          - 🎨 **Theme Engine & AMOLED Black**: 7 custom palettes, pure black AMOLED mode, and Material You dynamic color matching.
         files: |
           app/build/outputs/apk/debug/*.apk
         draft: false

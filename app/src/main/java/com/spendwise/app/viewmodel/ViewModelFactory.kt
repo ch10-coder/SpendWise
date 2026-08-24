@@ -38,6 +38,9 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(SavingsGoalsViewModel::class.java) -> {
                 SavingsGoalsViewModel(repository) as T
             }
+            modelClass.isAssignableFrom(RecurringTransactionsViewModel::class.java) -> {
+                RecurringTransactionsViewModel(repository) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

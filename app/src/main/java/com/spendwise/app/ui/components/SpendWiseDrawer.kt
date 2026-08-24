@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.DividerDefaults
@@ -53,6 +54,7 @@ enum class DrawerDestination(
     val description: String
 ) {
     SAVINGS_GOALS("Savings Goals", Icons.Default.Savings, "Track progress toward financial targets"),
+    RECURRING("Recurring", Icons.Default.Schedule, "Track repeating bills and income"),
     CATEGORIES("Categories", Icons.Default.Category, "Manage custom categories"),
     TAGS("Tags", Icons.Default.Label, "Manage custom tags"),
     DATA_TOOLS("Backup & Export", Icons.Default.FileDownload, "CSV export & import"),

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -231,8 +232,8 @@ fun TransactionItem(
             enableDismissFromStartToEnd = false,
             enableDismissFromEndToStart = true,
             backgroundContent = {
-                val progress = dismissState.progress
-                val isSwiping = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart || progress > 0.1f
+                val isSwiping = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart ||
+                                dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
                 val color = if (isSwiping) MaterialTheme.colorScheme.errorContainer else Color.Transparent
                 
                 Box(

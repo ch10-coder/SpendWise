@@ -10,9 +10,12 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.spendwise.app.model.CurrencyOption
 import com.spendwise.app.model.ThemeMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import java.io.IOException
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_settings")
@@ -38,7 +41,7 @@ class UserPreferencesManager(private val context: Context) {
      */
     val initialPreferences: Preferences by lazy {
         try {
-            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+            runBlocking(Dispatchers.IO) {
                 dataStore.data.first()
             }
         } catch (e: Exception) {

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -33,6 +34,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -316,7 +318,7 @@ fun TimelineScreen(
     // Deletion Confirmation Dialog
     if (pendingDeleteTransaction != null) {
         val txToDelete = pendingDeleteTransaction!!
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { pendingDeleteTransaction = null },
             title = { Text("Delete Transaction") },
             text = {
@@ -325,7 +327,7 @@ fun TimelineScreen(
                 )
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(
+                TextButton(
                     onClick = {
                         viewModel.deleteTransaction(txToDelete.id)
                         pendingDeleteTransaction = null
@@ -356,7 +358,7 @@ fun TimelineScreen(
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { pendingDeleteTransaction = null }) {
+                TextButton(onClick = { pendingDeleteTransaction = null }) {
                     Text("Cancel")
                 }
             }

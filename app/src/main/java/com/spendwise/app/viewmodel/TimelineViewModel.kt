@@ -10,6 +10,7 @@ import com.spendwise.app.model.CurrencyOption
 import com.spendwise.app.model.DateRangeFilter
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -124,7 +126,7 @@ class TimelineViewModel(
             matchesDate && matchesQuery && matchesType && matchesCategory
         }
     }
-    .kotlinx.coroutines.flow.flowOn(kotlinx.coroutines.Dispatchers.Default)
+    .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val summary: StateFlow<MonthlySummary> = filteredTransactions.map { transactions ->
@@ -143,13 +145,13 @@ class TimelineViewModel(
             netBalance = income - expense
         )
     }
-    .kotlinx.coroutines.flow.flowOn(kotlinx.coroutines.Dispatchers.Default)
+    .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MonthlySummary(0.0, 0.0, 0.0))
 
     val groupedTransactions: StateFlow<Map<String, List<TransactionWithCategory>>> = filteredTransactions.map { list ->
         groupTransactionsByDate(list)
     }
-    .kotlinx.coroutines.flow.flowOn(kotlinx.coroutines.Dispatchers.Default)
+    .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     fun onSearchQueryChanged(newQuery: String) {

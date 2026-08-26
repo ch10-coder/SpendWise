@@ -59,7 +59,14 @@ class SpendWiseRepository(
     private val recurringTransactionService: RecurringTransactionService
 ) {
 
-    // Preferences
+    // Preferences - Preloaded initial values
+    val initialThemeMode: ThemeMode get() = preferencesManager.initialThemeMode
+    val initialThemePalette: com.spendwise.app.model.ThemePalette get() = preferencesManager.initialThemePalette
+    val initialIsDynamicColor: Boolean get() = preferencesManager.initialIsDynamicColor
+    val initialIsAmoledBlack: Boolean get() = preferencesManager.initialIsAmoledBlack
+    val initialCurrencySymbol: String get() = preferencesManager.initialCurrencySymbol
+
+    // Preferences Flows
     val currencyCode: Flow<String> = preferencesManager.currencyCodeFlow
     val currencySymbol: Flow<String> = preferencesManager.currencySymbolFlow
     val themeMode: Flow<ThemeMode> = preferencesManager.themeModeFlow

@@ -29,6 +29,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private val TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.US)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionItem(
@@ -63,8 +65,19 @@ fun TransactionItem(
         else -> category?.let { CategoryIconHelper.getIcon(it.iconName) } ?: CategoryIconHelper.getIcon("ShoppingCart")
     }
 
-    val timeFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
-    val timeStr = timeFormatter.format(Date(transaction.dateTimestamp))
+    val timeStr = remember(transaction.dateTimestamp) {
+        try {
+            java.time.Instant.ofEpochMilli(transaction.dateTimestamp)
+                .atZone(java.time.ZoneId.systemDefault())
+                .format(TIME_FORMATTER)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    val formattedAmount = remember(transaction.amount) {
+        String.format(Locale.US, "%,.2f", transaction.amount)
+    }
 
     val content = @Composable {
         Card(
@@ -183,7 +196,7 @@ fun TransactionItem(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = "$amountPrefix$currencySymbol${String.format(Locale.US, "%,.2f", transaction.amount)}",
+                        text = "$amountPrefix$currencySymbol$formattedAmount",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = amountColor
@@ -201,10 +214,12 @@ fun TransactionItem(
 
     if (onDelete != null) {
         val dismissState = rememberSwipeToDismissBoxState(
+            positionalThreshold = { totalDistance -> totalDistance * 0.70f },
             confirmValueChange = { dismissValue ->
                 if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
                     onDelete()
-                    true
+                    // Don't auto-dismiss the item view until confirmed
+                    false
                 } else {
                     false
                 }
@@ -214,8 +229,10 @@ fun TransactionItem(
         SwipeToDismissBox(
             state = dismissState,
             enableDismissFromStartToEnd = false,
+            enableDismissFromEndToStart = true,
             backgroundContent = {
-                val isSwiping = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+                val progress = dismissState.progress
+                val isSwiping = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart || progress > 0.1f
                 val color = if (isSwiping) MaterialTheme.colorScheme.errorContainer else Color.Transparent
                 
                 Box(
@@ -228,11 +245,20 @@ fun TransactionItem(
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     if (isSwiping) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Delete",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
             },

@@ -64,17 +64,21 @@ object CategoryIconHelper {
         return AVAILABLE_ICONS[name] ?: Icons.Default.Category
     }
 
+    private val colorCache = java.util.concurrent.ConcurrentHashMap<String, Color>()
+
     fun parseColor(hex: String, defaultColor: Color = Color(0xFF64748B)): Color {
-        return try {
-            val cleanHex = hex.removePrefix("#")
-            val colorLong = cleanHex.toLong(16)
-            if (cleanHex.length == 6) {
-                Color(colorLong or 0x00000000FF000000L)
-            } else {
-                Color(colorLong)
+        return colorCache.computeIfAbsent(hex) {
+            try {
+                val cleanHex = it.removePrefix("#")
+                val colorLong = cleanHex.toLong(16)
+                if (cleanHex.length == 6) {
+                    Color(colorLong or 0x00000000FF000000L)
+                } else {
+                    Color(colorLong)
+                }
+            } catch (e: Exception) {
+                defaultColor
             }
-        } catch (e: Exception) {
-            defaultColor
         }
     }
 }

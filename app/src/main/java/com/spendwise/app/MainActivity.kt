@@ -29,10 +29,10 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val themeMode by repository.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
-            val themePalette by repository.themePalette.collectAsStateWithLifecycle(initialValue = com.spendwise.app.model.ThemePalette.EMERALD)
-            val isAmoledBlack by repository.isAmoledBlack.collectAsStateWithLifecycle(initialValue = false)
-            val isDynamicColor by repository.isDynamicColor.collectAsStateWithLifecycle(initialValue = false)
+            val themeMode by repository.themeMode.collectAsStateWithLifecycle(initialValue = repository.initialThemeMode)
+            val themePalette by repository.themePalette.collectAsStateWithLifecycle(initialValue = repository.initialThemePalette)
+            val isAmoledBlack by repository.isAmoledBlack.collectAsStateWithLifecycle(initialValue = repository.initialIsAmoledBlack)
+            val isDynamicColor by repository.isDynamicColor.collectAsStateWithLifecycle(initialValue = repository.initialIsDynamicColor)
 
             SpendWiseTheme(
                 themeMode = themeMode,

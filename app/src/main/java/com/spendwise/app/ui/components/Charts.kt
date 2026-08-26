@@ -187,6 +187,10 @@ fun DailySpendingBarChart(
         fontWeight = FontWeight.Medium
     )
 
+    val maxLabelText = remember(maxExpense, currencySymbol) {
+        "$currencySymbol${String.format(Locale.US, "%,.0f", maxExpense)}"
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -209,7 +213,6 @@ fun DailySpendingBarChart(
         ) {
             Canvas(modifier = Modifier.fillMaxWidth().height(136.dp)) {
                 // Draw max amount label
-                val maxLabelText = "$currencySymbol${String.format(Locale.US, "%,.0f", maxExpense)}"
                 val labelLayoutResult = textMeasurer.measure(maxLabelText, style = labelStyle)
                 drawText(
                     textMeasurer = textMeasurer,

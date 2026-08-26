@@ -33,6 +33,53 @@ class UserPreferencesManager(private val context: Context) {
 
     private val dataStore = context.dataStore
 
+    /**
+     * Synchronously load initial preferences snapshot on startup to prevent UI flash/flicker.
+     */
+    val initialPreferences: Preferences by lazy {
+        try {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                dataStore.data.first()
+            }
+        } catch (e: Exception) {
+            emptyPreferences()
+        }
+    }
+
+    val initialThemeMode: ThemeMode by lazy {
+        val rawMode = initialPreferences[PreferencesKeys.THEME_MODE] ?: ThemeMode.SYSTEM.name
+        try {
+            ThemeMode.valueOf(rawMode)
+        } catch (e: Exception) {
+            ThemeMode.SYSTEM
+        }
+    }
+
+    val initialThemePalette: com.spendwise.app.model.ThemePalette by lazy {
+        val rawPalette = initialPreferences[PreferencesKeys.THEME_PALETTE] ?: com.spendwise.app.model.ThemePalette.EMERALD.name
+        try {
+            com.spendwise.app.model.ThemePalette.valueOf(rawPalette)
+        } catch (e: Exception) {
+            com.spendwise.app.model.ThemePalette.EMERALD
+        }
+    }
+
+    val initialIsDynamicColor: Boolean by lazy {
+        initialPreferences[PreferencesKeys.IS_DYNAMIC_COLOR] ?: false
+    }
+
+    val initialIsAmoledBlack: Boolean by lazy {
+        initialPreferences[PreferencesKeys.IS_AMOLED_BLACK] ?: false
+    }
+
+    val initialCurrencyCode: String by lazy {
+        initialPreferences[PreferencesKeys.CURRENCY_CODE] ?: CurrencyOption.DEFAULT.code
+    }
+
+    val initialCurrencySymbol: String by lazy {
+        initialPreferences[PreferencesKeys.CURRENCY_SYMBOL] ?: CurrencyOption.DEFAULT.symbol
+    }
+
     val currencyCodeFlow: Flow<String> = dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { preferences ->

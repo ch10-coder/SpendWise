@@ -123,21 +123,34 @@ class TimelineViewModel(
 
             matchesDate && matchesQuery && matchesType && matchesCategory
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+    .kotlinx.coroutines.flow.flowOn(kotlinx.coroutines.Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val summary: StateFlow<MonthlySummary> = filteredTransactions.map { transactions ->
-        val income = transactions.filter { it.transaction.type == TransactionType.INCOME }.sumOf { it.transaction.amount }
-        val expense = transactions.filter { it.transaction.type == TransactionType.EXPENSE }.sumOf { it.transaction.amount }
+        var income = 0.0
+        var expense = 0.0
+        for (t in transactions) {
+            when (t.transaction.type) {
+                TransactionType.INCOME -> income += t.transaction.amount
+                TransactionType.EXPENSE -> expense += t.transaction.amount
+                else -> {}
+            }
+        }
         MonthlySummary(
             totalIncome = income,
             totalExpense = expense,
             netBalance = income - expense
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MonthlySummary(0.0, 0.0, 0.0))
+    }
+    .kotlinx.coroutines.flow.flowOn(kotlinx.coroutines.Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MonthlySummary(0.0, 0.0, 0.0))
 
     val groupedTransactions: StateFlow<Map<String, List<TransactionWithCategory>>> = filteredTransactions.map { list ->
         groupTransactionsByDate(list)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+    }
+    .kotlinx.coroutines.flow.flowOn(kotlinx.coroutines.Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     fun onSearchQueryChanged(newQuery: String) {
         searchQuery.value = newQuery
@@ -226,31 +239,27 @@ class TimelineViewModel(
     fun deleteTransactionWithUndo(transaction: TransactionEntity): Job {
         return viewModelScope.launch {
             repository.deleteTransaction(transaction)
-            // The undo logic would typically involve a snackbar that when clicked inserts it back,
-            // or we delay deletion in DB. Here we just delete and the caller handles re-insertion on undo.
-            // A more complex implementation could delay the DB delete, but this serves the requirement "returns a job that can be cancelled".
-            // Since it's requested to return a job that can be cancelled:
         }
+    }
+
+    companion object {
+        private val FULL_HEADER_FORMAT = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.getDefault())
     }
 
     private fun groupTransactionsByDate(list: List<TransactionWithCategory>): Map<String, List<TransactionWithCategory>> {
-        val todayStr = formatDateOnly(Date())
-        val yesterdayStr = formatDateOnly(Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000L))
-
-        val fullHeaderFormat = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val yesterday = today.minusDays(1)
 
         return list.groupBy { item ->
-            val itemDate = Date(item.transaction.dateTimestamp)
-            val dateOnlyStr = formatDateOnly(itemDate)
-            when (dateOnlyStr) {
-                todayStr -> "Today"
-                yesterdayStr -> "Yesterday"
-                else -> fullHeaderFormat.format(itemDate)
+            val itemDate = java.time.Instant.ofEpochMilli(item.transaction.dateTimestamp)
+                .atZone(zone)
+                .toLocalDate()
+            when (itemDate) {
+                today -> "Today"
+                yesterday -> "Yesterday"
+                else -> itemDate.format(FULL_HEADER_FORMAT)
             }
         }
-    }
-
-    private fun formatDateOnly(date: Date): String {
-        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
     }
 }

@@ -77,9 +77,11 @@ fun TimelineScreen(
     val customStartDate by viewModel.customStartDate.collectAsState()
     val customEndDate by viewModel.customEndDate.collectAsState()
 
+    val accountMap = remember(accounts) { accounts.associateBy { it.id } }
     val scope = rememberCoroutineScope()
     var showAddEditSheet by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<TransactionWithCategory?>(null) }
+    var pendingDeleteTransaction by remember { mutableStateOf<com.spendwise.app.data.local.entity.TransactionEntity?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -105,7 +107,7 @@ fun TimelineScreen(
             contentPadding = PaddingValues(bottom = 88.dp)
         ) {
             // Balance Summary Card with Privacy Toggle
-            item {
+            item(key = "summary_card", contentType = "summary") {
                 SummaryCard(
                     totalBalance = summary.netBalance,
                     totalIncome = summary.totalIncome,
@@ -117,7 +119,7 @@ fun TimelineScreen(
             }
 
             // Date Range Filter Chips
-            item {
+            item(key = "date_range_selector", contentType = "filter") {
                 DateRangeSelector(
                     selectedFilter = selectedDateRange,
                     onFilterSelected = { viewModel.selectedDateRange.value = it },
@@ -131,7 +133,7 @@ fun TimelineScreen(
             }
 
             // Search Bar & Type Filter Section
-            item {
+            item(key = "search_and_type_filter", contentType = "search") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -221,7 +223,7 @@ fun TimelineScreen(
 
             // Empty State or Grouped Transactions
             if (groupedTransactions.isEmpty()) {
-                item {
+                item(key = "empty_state", contentType = "empty") {
                     EmptyState(
                         title = "No Transactions Found",
                         description = if (searchQuery.isNotBlank() || selectedTypeFilter != null) {
@@ -244,7 +246,7 @@ fun TimelineScreen(
             } else {
                 // Grouped Transactions List
                 groupedTransactions.forEach { (dateHeader, items) ->
-                    item {
+                    item(key = "header_$dateHeader", contentType = "date_header") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -259,10 +261,14 @@ fun TimelineScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
-                            val dayTotal = items.sumOf {
-                                if (it.transaction.type == TransactionType.INCOME) it.transaction.amount else -it.transaction.amount
+                            val dayTotal = remember(items) {
+                                items.sumOf {
+                                    if (it.transaction.type == TransactionType.INCOME) it.transaction.amount else -it.transaction.amount
+                                }
                             }
-                            val formattedDayTotal = String.format(java.util.Locale.US, "%,.2f", dayTotal)
+                            val formattedDayTotal = remember(dayTotal) {
+                                String.format(java.util.Locale.US, "%,.2f", dayTotal)
+                            }
                             val dayPrefix = if (dayTotal >= 0) "+$currencySymbol" else "-$currencySymbol"
                             val dayColor = if (dayTotal >= 0) Emerald500 else Rose500
 
@@ -281,8 +287,12 @@ fun TimelineScreen(
                         }
                     }
 
-                    items(items, key = { it.transaction.id }) { item ->
-                        val accountName = accounts.firstOrNull { it.id == item.transaction.accountId }?.name
+                    items(
+                        items = items,
+                        key = { it.transaction.id },
+                        contentType = { "transaction_item" }
+                    ) { item ->
+                        val accountName = accountMap[item.transaction.accountId]?.name
                         TransactionItem(
                             item = item,
                             currencySymbol = currencySymbol,
@@ -294,35 +304,63 @@ fun TimelineScreen(
                                 showAddEditSheet = true
                             },
                             onDelete = {
-                                val txToDelete = item.transaction
-                                viewModel.deleteTransaction(txToDelete.id)
-                                snackbarHostState?.let { host ->
-                                    scope.launch {
-                                        val result = host.showSnackbar(
-                                            message = "Transaction deleted",
-                                            actionLabel = "Undo",
-                                            duration = SnackbarDuration.Short
-                                        )
-                                        if (result == SnackbarResult.ActionPerformed) {
-                                            viewModel.addTransaction(
-                                                title = txToDelete.title,
-                                                amount = txToDelete.amount,
-                                                type = txToDelete.type,
-                                                categoryId = txToDelete.categoryId,
-                                                dateTimestamp = txToDelete.dateTimestamp,
-                                                note = txToDelete.note,
-                                                accountId = txToDelete.accountId,
-                                                toAccountId = txToDelete.toAccountId
-                                            )
-                                        }
-                                    }
-                                }
+                                pendingDeleteTransaction = item.transaction
                             }
                         )
                     }
                 }
             }
         }
+    }
+
+    // Deletion Confirmation Dialog
+    if (pendingDeleteTransaction != null) {
+        val txToDelete = pendingDeleteTransaction!!
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingDeleteTransaction = null },
+            title = { Text("Delete Transaction") },
+            text = {
+                Text(
+                    "Are you sure you want to delete \"${txToDelete.title}\" (${currencySymbol}${String.format(java.util.Locale.US, "%,.2f", txToDelete.amount)})?"
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        viewModel.deleteTransaction(txToDelete.id)
+                        pendingDeleteTransaction = null
+                        snackbarHostState?.let { host ->
+                            scope.launch {
+                                val result = host.showSnackbar(
+                                    message = "Transaction deleted",
+                                    actionLabel = "Undo",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.addTransaction(
+                                        title = txToDelete.title,
+                                        amount = txToDelete.amount,
+                                        type = txToDelete.type,
+                                        categoryId = txToDelete.categoryId,
+                                        dateTimestamp = txToDelete.dateTimestamp,
+                                        note = txToDelete.note,
+                                        accountId = txToDelete.accountId,
+                                        toAccountId = txToDelete.toAccountId
+                                    )
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pendingDeleteTransaction = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Modal Add / Edit Sheet

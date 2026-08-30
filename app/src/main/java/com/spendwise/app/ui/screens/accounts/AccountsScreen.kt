@@ -15,15 +15,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.spendwise.app.data.local.entity.AccountEntity
 import com.spendwise.app.model.AccountType
 import com.spendwise.app.model.AccountWithBalance
 import com.spendwise.app.ui.components.CategoryIconHelper
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import java.util.Locale
 
 import com.spendwise.app.viewmodel.AccountsViewModel
@@ -58,11 +60,13 @@ fun AccountsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Account")
             }
@@ -73,18 +77,19 @@ fun AccountsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 Text(
                     text = "Your Accounts",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
             }
-            
+
             items(accounts, key = { it.account.id }) { item ->
                 AccountCard(
                     item = item,
@@ -119,8 +124,8 @@ fun AccountCard(
 ) {
     val accountColor = CategoryIconHelper.parseColor(item.account.colorHex)
     val accountIcon = CategoryIconHelper.getIcon(item.account.iconName)
-    
-    val balanceColor = if (item.calculatedBalance < 0 && !isBalanceHidden) Rose500 else if (item.calculatedBalance > 0 && !isBalanceHidden) Emerald500 else MaterialTheme.colorScheme.onSurface
+
+    val balanceColor = if (item.calculatedBalance < 0 && !isBalanceHidden) GoogleRed else if (item.calculatedBalance > 0 && !isBalanceHidden) GoogleGreen else MaterialTheme.colorScheme.onSurface
     val balanceText = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", item.calculatedBalance)}"
 
     val dismissState = rememberSwipeToDismissBoxState(
@@ -143,11 +148,12 @@ fun AccountCard(
             } else {
                 Color.Transparent
             }
-            
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(color, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(color)
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
@@ -165,11 +171,19 @@ fun AccountCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onClick),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -179,9 +193,9 @@ fun AccountCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(46.dp)
                             .clip(CircleShape)
-                            .background(accountColor.copy(alpha = 0.15f)),
+                            .background(accountColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -192,23 +206,24 @@ fun AccountCard(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = item.account.name,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(6.dp),
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
                             Text(
                                 text = item.account.type.displayName,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -237,24 +252,26 @@ fun AddAccountDialog(
     var selectedType by remember { mutableStateOf(AccountType.BANK) }
     var expanded by remember { mutableStateOf(false) }
     var selectedIcon by remember { mutableStateOf("AccountBalance") }
-    var selectedColor by remember { mutableStateOf("#3B82F6") }
+    var selectedColor by remember { mutableStateOf("#0B57D0") }
 
-    val presetColors = listOf("#EF4444", "#F97316", "#F59E0B", "#10B981", "#3B82F6", "#6366F1", "#8B5CF6", "#EC4899")
+    val presetColors = listOf("#B3261E", "#E29900", "#146C2E", "#0B57D0", "#6750A4", "#00677F", "#984061", "#4A6363")
     val presetIcons = listOf("AccountBalance", "AccountBalanceWallet", "Payments", "CreditCard", "Savings")
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Account") },
+        shape = RoundedCornerShape(28.dp),
+        title = { Text("Add Account", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Account Name") },
                     singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -269,6 +286,7 @@ fun AddAccountDialog(
                         label = { Text("Account Type") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(
@@ -310,7 +328,7 @@ fun AddAccountDialog(
 
                 Text("Color", style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    presetColors.take(5).forEach { colorHex ->
+                    presetColors.take(6).forEach { colorHex ->
                         val isSelected = selectedColor == colorHex
                         Box(
                             modifier = Modifier
@@ -323,7 +341,7 @@ fun AddAccountDialog(
                             if (isSelected) {
                                 Box(
                                     modifier = Modifier
-                                        .size(12.dp)
+                                        .size(10.dp)
                                         .clip(CircleShape)
                                         .background(Color.White)
                                 )
@@ -334,20 +352,21 @@ fun AddAccountDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     if (name.isNotBlank()) {
                         onSave(name.trim(), selectedType, selectedIcon, selectedColor)
                     }
                 },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Text("Save")
+                Text("Save Account")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

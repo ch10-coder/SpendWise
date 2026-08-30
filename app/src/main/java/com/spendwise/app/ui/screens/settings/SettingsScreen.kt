@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,6 +58,7 @@ import com.spendwise.app.model.CurrencyOption
 import com.spendwise.app.model.ThemeMode
 import com.spendwise.app.model.ThemePalette
 import com.spendwise.app.ui.components.CategoryIconHelper
+import com.spendwise.app.ui.theme.GoogleGreen
 import com.spendwise.app.viewmodel.SettingsViewModel
 import android.os.Build
 
@@ -78,8 +80,8 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Preferences Group
         item {
@@ -87,6 +89,7 @@ fun SettingsScreen(
                 text = "Preferences",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
@@ -97,9 +100,17 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showCurrencyDialog = true },
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -111,7 +122,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -128,7 +139,8 @@ fun SettingsScreen(
                         Text(
                             text = "Currency",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "$currencyCode ($currencySymbol)",
@@ -153,7 +165,8 @@ fun SettingsScreen(
                 text = "Appearance & Style",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp)
             )
         }
 
@@ -161,9 +174,17 @@ fun SettingsScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -175,7 +196,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -192,7 +213,8 @@ fun SettingsScreen(
                             Text(
                                 text = "Theme Mode",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Choose light, dark, or follow system",
@@ -239,9 +261,17 @@ fun SettingsScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -253,7 +283,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -270,7 +300,8 @@ fun SettingsScreen(
                             Text(
                                 text = "Color Palette",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = themePalette.displayName,
@@ -290,30 +321,30 @@ fun SettingsScreen(
 
                             Surface(
                                 onClick = { viewModel.selectThemePalette(palette) },
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(
                                             modifier = Modifier
-                                                .size(24.dp)
+                                                .size(26.dp)
                                                 .clip(CircleShape)
                                                 .background(paletteColor)
                                         )
-                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Spacer(modifier = Modifier.width(14.dp))
                                         Column {
                                             Text(
                                                 text = palette.displayName,
                                                 style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
@@ -344,9 +375,17 @@ fun SettingsScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -363,7 +402,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF000000).copy(alpha = 0.2f)),
+                                .background(Color(0xFF000000).copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -380,7 +419,8 @@ fun SettingsScreen(
                             Text(
                                 text = "AMOLED Pure Black",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Pure #000000 dark mode for battery saving",
@@ -393,7 +433,10 @@ fun SettingsScreen(
                     Switch(
                         checked = isAmoledBlack,
                         onCheckedChange = { viewModel.toggleAmoledBlack(it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White)
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     )
                 }
             }
@@ -404,9 +447,17 @@ fun SettingsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(22.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            )
+                        )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -421,9 +472,9 @@ fun SettingsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -440,7 +491,8 @@ fun SettingsScreen(
                                 Text(
                                     text = "Material You Dynamic Color",
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Match theme to phone wallpaper colors",
@@ -453,7 +505,10 @@ fun SettingsScreen(
                         Switch(
                             checked = isDynamicColor,
                             onCheckedChange = { viewModel.toggleDynamicColor(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White)
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
                     }
                 }
@@ -464,9 +519,17 @@ fun SettingsScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -478,13 +541,13 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF10B981).copy(alpha = 0.15f)),
+                            .background(GoogleGreen.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Security,
                             contentDescription = "Privacy",
-                            tint = Color(0xFF10B981),
+                            tint = GoogleGreen,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -495,7 +558,8 @@ fun SettingsScreen(
                         Text(
                             text = "100% Offline & Private",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "All data stays securely on your device.",
@@ -511,9 +575,17 @@ fun SettingsScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -542,10 +614,11 @@ fun SettingsScreen(
                         Text(
                             text = "SpendWise Android",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Version 1.0.0 • Kotlin 2.0 • Jetpack Compose",
+                            text = "Version 1.0.0 • Google Material 3 Design • Jetpack Compose",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -558,6 +631,7 @@ fun SettingsScreen(
     if (showCurrencyDialog) {
         AlertDialog(
             onDismissRequest = { showCurrencyDialog = false },
+            shape = RoundedCornerShape(28.dp),
             title = { Text("Select Currency", fontWeight = FontWeight.Bold) },
             text = {
                 LazyColumn(
@@ -570,13 +644,13 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(14.dp))
                                 .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent)
                                 .clickable {
                                     viewModel.selectCurrency(option)
                                     showCurrencyDialog = false
                                 }
-                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
@@ -599,7 +673,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showCurrencyDialog = false }) {
-                    Text("Close")
+                    Text("Close", color = MaterialTheme.colorScheme.primary)
                 }
             }
         )

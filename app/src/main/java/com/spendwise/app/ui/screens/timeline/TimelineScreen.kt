@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -54,8 +53,10 @@ import com.spendwise.app.ui.components.DateRangeSelector
 import com.spendwise.app.ui.components.EmptyState
 import com.spendwise.app.ui.components.SummaryCard
 import com.spendwise.app.ui.components.TransactionItem
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleGreenContainer
+import com.spendwise.app.ui.theme.GoogleRed
+import com.spendwise.app.ui.theme.GoogleRedContainer
 import com.spendwise.app.viewmodel.TimelineViewModel
 import kotlinx.coroutines.launch
 
@@ -94,11 +95,14 @@ fun TimelineScreen(
                     itemToEdit = null
                     showAddEditSheet = true
                 },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                shape = CircleShape
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(18.dp)
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Transaction")
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Transaction"
+                )
             }
         }
     ) { paddingValues ->
@@ -134,17 +138,17 @@ fun TimelineScreen(
                 )
             }
 
-            // Search Bar & Type Filter Section
+            // Search Bar & Type Filter Section (Google Style Search Pill)
             item(key = "search_and_type_filter", contentType = "search") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = viewModel::onSearchQueryChanged,
-                        placeholder = { Text("Search transactions...") },
+                        placeholder = { Text("Search transactions, notes...", style = MaterialTheme.typography.bodyMedium) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
@@ -164,11 +168,12 @@ fun TimelineScreen(
                             }
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            focusedBorderColor = MaterialTheme.colorScheme.primary
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -184,7 +189,11 @@ fun TimelineScreen(
                                 selected = selectedTypeFilter == null,
                                 onClick = { viewModel.onTypeFilterSelected(null) },
                                 label = { Text("All") },
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(20.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             )
                         }
                         item {
@@ -196,10 +205,10 @@ fun TimelineScreen(
                                     )
                                 },
                                 label = { Text("Expenses") },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Rose500.copy(alpha = 0.2f),
-                                    selectedLabelColor = Rose500
+                                    selectedContainerColor = GoogleRedContainer,
+                                    selectedLabelColor = GoogleRed
                                 )
                             )
                         }
@@ -212,10 +221,10 @@ fun TimelineScreen(
                                     )
                                 },
                                 label = { Text("Income") },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Emerald500.copy(alpha = 0.2f),
-                                    selectedLabelColor = Emerald500
+                                    selectedContainerColor = GoogleGreenContainer,
+                                    selectedLabelColor = GoogleGreen
                                 )
                             )
                         }
@@ -272,11 +281,11 @@ fun TimelineScreen(
                                 String.format(java.util.Locale.US, "%,.2f", dayTotal)
                             }
                             val dayPrefix = if (dayTotal >= 0) "+$currencySymbol" else "-$currencySymbol"
-                            val dayColor = if (dayTotal >= 0) Emerald500 else Rose500
+                            val dayColor = if (dayTotal >= 0) GoogleGreen else GoogleRed
 
                             Surface(
                                 color = dayColor.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text(
                                     text = "$dayPrefix${formattedDayTotal.replace("-", "")}",
@@ -315,15 +324,17 @@ fun TimelineScreen(
         }
     }
 
-    // Deletion Confirmation Dialog
+    // Deletion Confirmation Dialog (Google Material 3 Styled)
     if (pendingDeleteTransaction != null) {
         val txToDelete = pendingDeleteTransaction!!
         AlertDialog(
             onDismissRequest = { pendingDeleteTransaction = null },
-            title = { Text("Delete Transaction") },
+            shape = RoundedCornerShape(28.dp),
+            title = { Text("Delete Transaction", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "Are you sure you want to delete \"${txToDelete.title}\" (${currencySymbol}${String.format(java.util.Locale.US, "%,.2f", txToDelete.amount)})?"
+                    "Are you sure you want to delete \"${txToDelete.title}\" (${currencySymbol}${String.format(java.util.Locale.US, "%,.2f", txToDelete.amount)})?",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             },
             confirmButton = {
@@ -359,7 +370,7 @@ fun TimelineScreen(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteTransaction = null }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )

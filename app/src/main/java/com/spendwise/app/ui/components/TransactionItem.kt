@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,10 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
-import java.text.SimpleDateFormat
-import java.util.Date
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import java.util.Locale
 
 private val TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.US)
@@ -56,8 +55,8 @@ fun TransactionItem(
     }
     val amountColor = when {
         isTransfer -> MaterialTheme.colorScheme.primary
-        isIncome -> Emerald500
-        else -> Rose500
+        isIncome -> GoogleGreen
+        else -> GoogleRed
     }
 
     val categoryColor = category?.let { CategoryIconHelper.parseColor(it.colorHex) } ?: MaterialTheme.colorScheme.primary
@@ -86,25 +85,32 @@ fun TransactionItem(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
                 .clickable(onClick = onClick),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+            border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                    )
+                )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Category Icon Badge with subtle glowing ring
+                // Category Icon Badge with soft soothing ring
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(categoryColor.copy(alpha = 0.12f))
-                        .border(1.dp, categoryColor.copy(alpha = 0.25f), CircleShape),
+                        .background(categoryColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -125,7 +131,7 @@ fun TransactionItem(
                         Text(
                             text = transaction.title,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -150,7 +156,7 @@ fun TransactionItem(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Row(
@@ -172,11 +178,11 @@ fun TransactionItem(
                             )
                         }
                     }
-                    
+
                     if (accountName != null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
@@ -199,7 +205,7 @@ fun TransactionItem(
                     Text(
                         text = "$amountPrefix$currencySymbol$formattedAmount",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
                         color = amountColor
                     )
                     Spacer(modifier = Modifier.height(2.dp))
@@ -219,7 +225,6 @@ fun TransactionItem(
             confirmValueChange = { dismissValue ->
                 if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
                     onDelete()
-                    // Don't auto-dismiss the item view until confirmed
                     false
                 } else {
                     false
@@ -235,12 +240,12 @@ fun TransactionItem(
                 val isSwiping = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart ||
                                 dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
                 val color = if (isSwiping) MaterialTheme.colorScheme.errorContainer else Color.Transparent
-                
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(18.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .background(color)
                         .padding(horizontal = 20.dp),
                     contentAlignment = Alignment.CenterEnd

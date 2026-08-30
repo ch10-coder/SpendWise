@@ -53,19 +53,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.spendwise.app.data.local.entity.CategoryEntity
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.ui.components.CategoryIconHelper
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import com.spendwise.app.viewmodel.CategoriesViewModel
 
 private val PRESET_COLORS = listOf(
-    "#EF4444", "#F97316", "#F59E0B", "#10B981", "#14B8A6",
-    "#06B6D4", "#3B82F6", "#6366F1", "#8B5CF6", "#EC4899"
+    "#B3261E", "#E29900", "#146C2E", "#0B57D0", "#6750A4",
+    "#00677F", "#984061", "#4A6363", "#D93025", "#1E8E3E"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,9 +92,9 @@ fun CategoriesScreen(
                     editingCategory = null
                     showDialog = true
                 },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                shape = CircleShape
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Add Category")
             }
@@ -103,7 +104,7 @@ fun CategoriesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Type Segmented Toggle
@@ -116,11 +117,13 @@ fun CategoriesScreen(
                         onClick = { viewModel.onTypeSelected(TransactionType.EXPENSE) },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                         colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = Rose500.copy(alpha = 0.15f),
-                            activeContentColor = Rose500
+                            activeContainerColor = GoogleRed.copy(alpha = 0.15f),
+                            activeContentColor = GoogleRed,
+                            inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
-                        Text("Expense (${allCategories.count { it.type == TransactionType.EXPENSE }})")
+                        Text("Expense (${allCategories.count { it.type == TransactionType.EXPENSE }})", fontWeight = FontWeight.Bold)
                     }
 
                     SegmentedButton(
@@ -128,11 +131,13 @@ fun CategoriesScreen(
                         onClick = { viewModel.onTypeSelected(TransactionType.INCOME) },
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                         colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = Emerald500.copy(alpha = 0.15f),
-                            activeContentColor = Emerald500
+                            activeContainerColor = GoogleGreen.copy(alpha = 0.15f),
+                            activeContentColor = GoogleGreen,
+                            inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
-                        Text("Income (${allCategories.count { it.type == TransactionType.INCOME }})")
+                        Text("Income (${allCategories.count { it.type == TransactionType.INCOME }})", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -143,9 +148,17 @@ fun CategoriesScreen(
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(22.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            )
+                        )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -155,9 +168,9 @@ fun CategoriesScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(42.dp)
                                 .clip(CircleShape)
-                                .background(catColor.copy(alpha = 0.15f)),
+                                .background(catColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -174,7 +187,8 @@ fun CategoriesScreen(
                             Text(
                                 text = category.name,
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             if (category.isDefault) {
                                 Text(
@@ -205,7 +219,7 @@ fun CategoriesScreen(
                                 Icon(
                                     imageVector = Icons.Default.Delete,
                                     contentDescription = "Delete Category",
-                                    tint = Rose500
+                                    tint = GoogleRed
                                 )
                             }
                         }
@@ -257,6 +271,7 @@ fun AddEditCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
         title = { Text(if (initialCategory == null) "New Category" else "Edit Category", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -313,8 +328,8 @@ fun AddEditCategoryDialog(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) CategoryIconHelper.parseColor(selectedColor) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) CategoryIconHelper.parseColor(selectedColor) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                                 .clickable { selectedIcon = iconKey },
                             contentAlignment = Alignment.Center
                         ) {
@@ -346,14 +361,14 @@ fun AddEditCategoryDialog(
                     }
                     onSave(name.trim(), type, selectedIcon, selectedColor)
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             ) {
                 Text("Save")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

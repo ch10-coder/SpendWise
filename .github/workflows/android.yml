@@ -65,41 +65,41 @@ jobs:
         gradle wrapper
         chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+    - name: Build Debug and Release APKs
+      run: ./gradlew assembleRelease assembleDebug --stacktrace
 
     - name: Build Android App Bundle (.aab) for Google Play
-      run: ./gradlew bundleDebug --stacktrace
+      run: ./gradlew bundleRelease bundleDebug --stacktrace
 
-    - name: Upload Debug APK Artifact
+    - name: Upload APK Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.1.0-APK
-        path: app/build/outputs/apk/debug/*.apk
+        name: SpendWise-v2.3.0-APKs
+        path: app/build/outputs/apk/**/*.apk
 
     - name: Upload Google Play AAB Bundle
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.1.0-AAB
-        path: app/build/outputs/bundle/debug/*.aab
+        name: SpendWise-v2.3.0-AAB
+        path: app/build/outputs/bundle/**/*.aab
 
     - name: Create / Update GitHub Release with APK
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
       with:
         tag_name: v2.3.0
-        name: "SpendWise v2.3.0 Frontend Design Overhaul"
+        name: "SpendWise v2.3.0 Google Material You Redesign"
         body: |
-          ### SpendWise v2.3.0 Frontend Design Overhaul 💎
+          ### SpendWise v2.3.0 Google Material You Redesign 💎
 
           #### ✨ Design Upgrades & Polish:
-          - 💳 **Fintech Glassmorphic Hero Card**: Redesigned summary card with Cash Inflow/Outflow glass metrics and dynamic Cashflow Ratio health bar.
-          - 🧾 **Modern Transaction Cards**: Elevated surface cards with glowing category ring badges, micro-account labels, and smooth swipe-to-delete.
-          - 🧭 **Floating Dock Bottom Navigation**: Elevated floating pill navigation bar with active spring indicators.
-          - 📅 **Elevated Date Headers**: Clean day labels with real-time net daily cashflow pill badges (`+$45.00` / `-$12.50`).
-          - 🎨 **Theme Engine & AMOLED Black**: 7 custom palettes, pure black AMOLED mode, and Material You dynamic color matching.
+          - 💳 **Google Wallet Style Hero Card**: Privacy balance toggle, Google pastel Inflow/Outflow metric pills, and animated cashflow ratio capsule.
+          - 🧭 **Floating Nav Dock**: Floating pill navigation dock (`28.dp` radius) with Material icons and pill selection indicator.
+          - 🧾 **Google Pay Transaction Rows**: `20.dp` squircle cards with category badges, crisp typography, and swipe-to-delete.
+          - 🔍 **Google Search Pill & Filter Chips**: `28.dp` search pill and `20.dp` squircle filter chips.
+          - 📊 **Tonal Equilibrium Dual Mode**: Soothing pastel colors (Google Blue, Sage Green, Coral Red, Amber) for Light & Dark mode.
         files: |
-          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/**/*.apk
         draft: false
         prerelease: false
       env:

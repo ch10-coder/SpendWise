@@ -17,8 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.PieChart
@@ -27,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -34,14 +33,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.spendwise.app.ui.components.DailySpendingBarChart
 import com.spendwise.app.ui.components.DonutPieChart
 import com.spendwise.app.ui.components.EmptyState
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import com.spendwise.app.viewmodel.AnalyticsViewModel
 import java.util.Locale
 
@@ -57,16 +58,24 @@ fun AnalyticsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Month Selector Bar
+        // Month Selector Bar (Google Tonal Pill Bar)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -75,18 +84,39 @@ fun AnalyticsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { viewModel.previousMonth() }) {
-                        Icon(imageVector = Icons.Default.ChevronLeft, contentDescription = "Previous Month")
+                    IconButton(
+                        onClick = { viewModel.previousMonth() },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronLeft,
+                            contentDescription = "Previous Month",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     Text(
                         text = viewModel.getFormattedMonthYear(),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    IconButton(onClick = { viewModel.nextMonth() }) {
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Next Month")
+                    IconButton(
+                        onClick = { viewModel.nextMonth() },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Next Month",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -102,21 +132,21 @@ fun AnalyticsScreen(
                     title = "Income",
                     amount = analytics.totalIncome,
                     currencySymbol = currencySymbol,
-                    accentColor = Emerald500,
+                    accentColor = GoogleGreen,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
                     title = "Expenses",
                     amount = analytics.totalExpense,
                     currencySymbol = currencySymbol,
-                    accentColor = Rose500,
+                    accentColor = GoogleRed,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
                     title = "Savings",
                     amount = analytics.netSavings,
                     currencySymbol = currencySymbol,
-                    accentColor = if (analytics.netSavings >= 0) Emerald500 else Rose500,
+                    accentColor = if (analytics.netSavings >= 0) GoogleGreen else GoogleRed,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -135,22 +165,30 @@ fun AnalyticsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            )
+                        )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp)
+                            .padding(vertical = 18.dp)
                     ) {
                         Text(
                             text = "Spending by Category",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = 18.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         DonutPieChart(
                             categorySpendings = analytics.categorySpendings,
                             totalExpense = analytics.totalExpense,
@@ -164,14 +202,22 @@ fun AnalyticsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            )
+                        )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     DailySpendingBarChart(
                         dailySpendings = analytics.dailySpendings,
                         currencySymbol = currencySymbol,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        modifier = Modifier.padding(vertical = 18.dp)
                     )
                 }
             }
@@ -189,22 +235,30 @@ private fun MetricCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(14.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "$currencySymbol${String.format(Locale.US, "%,.0f", amount)}",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = accentColor,
                 maxLines = 1

@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,18 +45,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.spendwise.app.data.local.entity.RecurringTransactionEntity
 import com.spendwise.app.model.RecurrenceFrequency
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.ui.components.CategoryIconHelper
 import com.spendwise.app.ui.components.EmptyState
 import com.spendwise.app.ui.components.RecurringTransactionSheet
-import com.spendwise.app.ui.theme.Amber500
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
+import com.spendwise.app.ui.theme.GoogleYellow
 import com.spendwise.app.viewmodel.RecurringTransactionOverview
 import com.spendwise.app.viewmodel.RecurringTransactionsViewModel
 import java.text.SimpleDateFormat
@@ -87,8 +90,9 @@ fun RecurringTransactionsScreen(
                     editingRule = null
                     showSheet = true
                 },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Add recurring rule")
             }
@@ -98,7 +102,7 @@ fun RecurringTransactionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
@@ -128,6 +132,7 @@ fun RecurringTransactionsScreen(
                         text = "All Rules",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -210,15 +215,24 @@ private fun RecurringSummaryCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Text(
                 text = "Recurring Overview",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -233,7 +247,7 @@ private fun RecurringSummaryCard(
                 SummaryStatCard(
                     title = "Active",
                     value = overview.activeRules.toString(),
-                    accentColor = Emerald500,
+                    accentColor = GoogleGreen,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -244,13 +258,13 @@ private fun RecurringSummaryCard(
                 SummaryStatCard(
                     title = "Paused",
                     value = overview.pausedRules.toString(),
-                    accentColor = Rose500,
+                    accentColor = GoogleRed,
                     modifier = Modifier.weight(1f)
                 )
                 SummaryStatCard(
                     title = "Due Soon",
                     value = overview.dueSoonRules.toString(),
-                    accentColor = Amber500,
+                    accentColor = GoogleYellow,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -261,8 +275,8 @@ private fun RecurringSummaryCard(
             if (nextDue != null) {
                 val nextDueLabel = formatDate(nextDue.nextOccurrence)
                 val color = if (!nextDue.isActive) MaterialTheme.colorScheme.onSurfaceVariant else when {
-                    isOverdue(nextDue.nextOccurrence) -> Rose500
-                    isDueToday(nextDue.nextOccurrence) -> Amber500
+                    isOverdue(nextDue.nextOccurrence) -> GoogleRed
+                    isDueToday(nextDue.nextOccurrence) -> GoogleYellow
                     else -> MaterialTheme.colorScheme.primary
                 }
 
@@ -297,7 +311,8 @@ private fun RecurringSummaryCard(
                             Text(
                                 text = "Next due: ${nextDue.title}",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "$nextDueLabel • ${nextDue.frequency.displayName}",
@@ -336,12 +351,20 @@ private fun SummaryStatCard(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            )
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -370,8 +393,8 @@ private fun RecurringRuleCard(
     val categoryColor = category?.let { CategoryIconHelper.parseColor(it.colorHex) } ?: MaterialTheme.colorScheme.primary
     val categoryIcon = category?.let { CategoryIconHelper.getIcon(it.iconName) } ?: Icons.Default.Schedule
     val amountColor = when (rule.type) {
-        TransactionType.EXPENSE -> Rose500
-        TransactionType.INCOME -> Emerald500
+        TransactionType.EXPENSE -> GoogleRed
+        TransactionType.INCOME -> GoogleGreen
         TransactionType.TRANSFER -> MaterialTheme.colorScheme.primary
     }
 
@@ -379,9 +402,17 @@ private fun RecurringRuleCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -389,7 +420,7 @@ private fun RecurringRuleCard(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(categoryColor.copy(alpha = 0.15f)),
+                        .background(categoryColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -406,7 +437,8 @@ private fun RecurringRuleCard(
                     Text(
                         text = rule.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = if (rule.type == TransactionType.INCOME) "+$currencySymbol${formatAmount(rule.amount)}" else "-$currencySymbol${formatAmount(rule.amount)}",
@@ -419,13 +451,18 @@ private fun RecurringRuleCard(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = if (rule.isActive) "Active" else "Paused",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (rule.isActive) Emerald500 else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (rule.isActive) GoogleGreen else MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Switch(
                         checked = rule.isActive,
-                        onCheckedChange = onToggleActive
+                        onCheckedChange = onToggleActive,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     )
                 }
             }
@@ -470,8 +507,8 @@ private fun RecurringRuleCard(
                     fontWeight = FontWeight.SemiBold,
                     color = when {
                         !rule.isActive -> MaterialTheme.colorScheme.onSurfaceVariant
-                        isOverdue(rule.nextOccurrence) -> Rose500
-                        isDueToday(rule.nextOccurrence) -> Amber500
+                        isOverdue(rule.nextOccurrence) -> GoogleRed
+                        isDueToday(rule.nextOccurrence) -> GoogleYellow
                         else -> MaterialTheme.colorScheme.primary
                     }
                 )
@@ -480,14 +517,15 @@ private fun RecurringRuleCard(
                     IconButton(onClick = onClick) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit recurring rule"
+                            contentDescription = "Edit recurring rule",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onDelete) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete recurring rule",
-                            tint = Rose500
+                            tint = MaterialTheme.colorScheme.error
                         )
                     }
                 }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,8 +33,8 @@ import androidx.compose.ui.unit.sp
 import com.spendwise.app.data.local.entity.SavingsGoalEntity
 import com.spendwise.app.ui.components.CategoryIconHelper
 import com.spendwise.app.ui.components.EmptyState
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import com.spendwise.app.viewmodel.SavingsGoalsViewModel
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -80,7 +81,7 @@ fun SavingsGoalsScreen(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var goalToEdit by remember { mutableStateOf<SavingsGoalEntity?>(null) }
-    var adjustActionGoal by remember { mutableStateOf<Pair<SavingsGoalEntity, Boolean>?>(null) } // true = deposit, false = withdraw
+    var adjustActionGoal by remember { mutableStateOf<Pair<SavingsGoalEntity, Boolean>?>(null) }
 
     val totalSaved = goals.sumOf { it.currentAmount }
     val totalTarget = goals.sumOf { it.targetAmount }
@@ -92,9 +93,9 @@ fun SavingsGoalsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                shape = CircleShape
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Savings Goal")
             }
@@ -119,18 +120,26 @@ fun SavingsGoalsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // Header Summary Card
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(26.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                                )
+                            )
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Row(
@@ -164,7 +173,7 @@ fun SavingsGoalsScreen(
                                 progress = { animatedOverall },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(10.dp)
+                                    .height(8.dp)
                                     .clip(CircleShape),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -187,7 +196,7 @@ fun SavingsGoalsScreen(
                                         text = savedStr,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Emerald500
+                                        color = GoogleGreen
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
@@ -297,11 +306,19 @@ fun SavingsGoalItem(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             // Header with Icon, Title, Deadline & Actions
@@ -313,7 +330,7 @@ fun SavingsGoalItem(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(goalColor.copy(alpha = 0.15f)),
+                        .background(goalColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -337,13 +354,13 @@ fun SavingsGoalItem(
                         if (isCompleted) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
-                                color = Emerald500.copy(alpha = 0.15f),
+                                color = GoogleGreen.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
                                     text = "Reached! 🎉",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Emerald500,
+                                    color = GoogleGreen,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -369,7 +386,7 @@ fun SavingsGoalItem(
                         Text(
                             text = deadlineLabel,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (daysRemaining < 0) Rose500 else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (daysRemaining < 0) GoogleRed else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -400,7 +417,7 @@ fun SavingsGoalItem(
                 progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp)
+                    .height(7.dp)
                     .clip(CircleShape),
                 color = goalColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -485,13 +502,13 @@ fun AddEditSavingsGoalDialog(
     var currentAmountText by remember { mutableStateOf(initialGoal?.currentAmount?.let { if (it > 0) String.format(Locale.US, "%.2f", it) else "" } ?: "") }
     var deadlineTimestamp by remember { mutableStateOf(initialGoal?.deadline) }
     var selectedIcon by remember { mutableStateOf(initialGoal?.iconName ?: "Savings") }
-    var selectedColor by remember { mutableStateOf(initialGoal?.colorHex ?: "#10B981") }
+    var selectedColor by remember { mutableStateOf(initialGoal?.colorHex ?: "#146C2E") }
     var showDatePicker by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val presetColors = listOf(
-        "#10B981", "#3B82F6", "#6366F1", "#8B5CF6",
-        "#EC4899", "#EF4444", "#F59E0B", "#14B8A6"
+        "#146C2E", "#0B57D0", "#6750A4", "#00677F",
+        "#984061", "#B3261E", "#7D5700", "#006A6A"
     )
 
     val presetIcons = listOf(
@@ -501,6 +518,7 @@ fun AddEditSavingsGoalDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
         title = {
             Text(
                 text = if (initialGoal == null) "Create Savings Goal" else "Edit Goal",
@@ -519,7 +537,7 @@ fun AddEditSavingsGoalDialog(
                     onValueChange = { name = it },
                     label = { Text("Goal Name (e.g. Vacation, Car)") },
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -529,7 +547,7 @@ fun AddEditSavingsGoalDialog(
                     label = { Text("Target Amount ($currencySymbol)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -539,14 +557,14 @@ fun AddEditSavingsGoalDialog(
                     label = { Text("Initial Saved Amount (Optional)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Target Date Selector
                 Surface(
                     onClick = { showDatePicker = true },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -621,7 +639,7 @@ fun AddEditSavingsGoalDialog(
                             if (isSelected) {
                                 Box(
                                     modifier = Modifier
-                                        .size(14.dp)
+                                        .size(12.dp)
                                         .clip(CircleShape)
                                         .background(Color.White)
                                 )
@@ -652,14 +670,14 @@ fun AddEditSavingsGoalDialog(
                         onSave(name, target, current, deadlineTimestamp, selectedIcon, selectedColor)
                     }
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             ) {
                 Text("Save Goal")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )
@@ -702,6 +720,7 @@ fun DepositWithdrawDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
         title = {
             Text(
                 text = if (isDeposit) "Deposit to ${goal.name}" else "Withdraw from ${goal.name}",
@@ -724,7 +743,7 @@ fun DepositWithdrawDialog(
                     label = { Text("Amount ($currencySymbol)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 errorMessage?.let {
@@ -748,9 +767,9 @@ fun DepositWithdrawDialog(
                         onConfirm(amount)
                     }
                 },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isDeposit) Emerald500 else Rose500
+                    containerColor = if (isDeposit) GoogleGreen else GoogleRed
                 )
             ) {
                 Text(if (isDeposit) "Deposit" else "Withdraw")
@@ -758,7 +777,7 @@ fun DepositWithdrawDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.spendwise.app.model.CategorySpending
 import com.spendwise.app.model.DailySpending
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import java.util.Locale
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -68,14 +68,14 @@ fun DonutPieChart(
             contentAlignment = Alignment.Center
         ) {
             Canvas(modifier = Modifier.size(190.dp)) {
-                val strokeWidth = 36.dp.toPx()
+                val strokeWidth = 34.dp.toPx()
                 val radius = (size.minDimension - strokeWidth) / 2
                 val centerOffset = Offset(size.width / 2, size.height / 2)
 
                 if (categorySpendings.isEmpty() || totalExpense <= 0) {
                     // Empty grey ring
                     drawCircle(
-                        color = Color(0xFFE2E8F0),
+                        color = Color(0xFFE2E8F0).copy(alpha = 0.4f),
                         radius = radius,
                         center = centerOffset,
                         style = Stroke(width = strokeWidth)
@@ -137,8 +137,8 @@ fun DonutPieChart(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -152,7 +152,8 @@ fun DonutPieChart(
                     Text(
                         text = item.category.name,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
@@ -164,7 +165,8 @@ fun DonutPieChart(
                     Text(
                         text = "$currencySymbol${String.format(Locale.US, "%,.2f", item.totalAmount)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -199,7 +201,8 @@ fun DailySpendingBarChart(
         Text(
             text = "Daily Spending Trend",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -207,8 +210,8 @@ fun DailySpendingBarChart(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(160.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                 .padding(horizontal = 12.dp, vertical = 12.dp)
         ) {
             Canvas(modifier = Modifier.fillMaxWidth().height(136.dp)) {
@@ -236,10 +239,10 @@ fun DailySpendingBarChart(
 
                         if (barHeight > 0) {
                             drawRoundRect(
-                                color = Rose500.copy(alpha = 0.85f),
+                                color = GoogleRed.copy(alpha = 0.85f),
                                 topLeft = Offset(x, y),
                                 size = Size(barWidth, barHeight),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx(), 6.dp.toPx())
                             )
                         } else {
                             // Baseline tick

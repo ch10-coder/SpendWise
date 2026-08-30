@@ -46,13 +46,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import com.spendwise.app.viewmodel.DataToolState
 import com.spendwise.app.viewmodel.DataToolsViewModel
 
@@ -95,8 +96,8 @@ fun DataToolsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Status Alerts
         item {
@@ -117,7 +118,7 @@ fun DataToolsScreen(
                         title = "Success",
                         message = currentState.message,
                         icon = Icons.Default.CheckCircle,
-                        tint = Emerald500
+                        tint = GoogleGreen
                     )
                 }
                 is DataToolState.Error -> {
@@ -125,7 +126,7 @@ fun DataToolsScreen(
                         title = "Error",
                         message = currentState.errorMessage,
                         icon = Icons.Default.Error,
-                        tint = Rose500
+                        tint = GoogleRed
                     )
                 }
                 else -> {}
@@ -139,7 +140,7 @@ fun DataToolsScreen(
                 description = "Download a CSV backup containing all your transactions, dates, amounts, categories, and notes.",
                 buttonText = "Export Transactions",
                 icon = Icons.Default.FileUpload,
-                accentColor = Emerald500,
+                accentColor = GoogleGreen,
                 onClick = {
                     val defaultFileName = "SpendWise_Transactions_${System.currentTimeMillis()}.csv"
                     exportLauncher.launch(defaultFileName)
@@ -168,7 +169,7 @@ fun DataToolsScreen(
                 description = "Permanently delete all logged transactions and reset your balance to zero. This action cannot be undone.",
                 buttonText = "Clear All Data",
                 icon = Icons.Default.DeleteForever,
-                accentColor = Rose500,
+                accentColor = GoogleRed,
                 isDestructive = true,
                 onClick = { showClearDialog = true }
             )
@@ -178,6 +179,7 @@ fun DataToolsScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
+            shape = RoundedCornerShape(28.dp),
             title = { Text("Delete All Transactions?", fontWeight = FontWeight.Bold) },
             text = { Text("This will permanently remove all your transactions and reset all balance summaries. Are you sure?") },
             confirmButton = {
@@ -186,15 +188,15 @@ fun DataToolsScreen(
                         viewModel.resetData()
                         showClearDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Rose500),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = GoogleRed),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Text("Yes, Delete All")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -214,9 +216,17 @@ private fun DataActionCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -228,7 +238,7 @@ private fun DataActionCard(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.15f)),
+                        .background(accentColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -244,7 +254,8 @@ private fun DataActionCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -263,7 +274,7 @@ private fun DataActionCard(
                     onClick = onClick,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Rose500)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GoogleRed)
                 ) {
                     Text(buttonText, fontWeight = FontWeight.Bold)
                 }
@@ -272,7 +283,10 @@ private fun DataActionCard(
                     onClick = onClick,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = accentColor)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 ) {
                     Text(buttonText, fontWeight = FontWeight.Bold)
                 }
@@ -292,7 +306,7 @@ private fun DataStatusCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = tint.copy(alpha = 0.12f))
     ) {
         Row(

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.spendwise.app.model.DateRangeFilter
 import java.text.SimpleDateFormat
@@ -33,7 +34,7 @@ fun DateRangeSelector(
     ) {
         items(DateRangeFilter.entries) { filter ->
             val isSelected = selectedFilter == filter
-            
+
             FilterChip(
                 selected = isSelected,
                 onClick = {
@@ -45,18 +46,26 @@ fun DateRangeSelector(
                 label = {
                     if (filter == DateRangeFilter.CUSTOM && isSelected && customStartDate != null && customEndDate != null) {
                         val format = SimpleDateFormat("MMM d", Locale.getDefault())
-                        Text("${format.format(Date(customStartDate))} - ${format.format(Date(customEndDate))}")
+                        Text(
+                            "${format.format(Date(customStartDate))} - ${format.format(Date(customEndDate))}",
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
                     } else {
-                        Text(filter.displayName)
+                        Text(
+                            filter.displayName,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
                     }
                 },
                 leadingIcon = if (filter == DateRangeFilter.CUSTOM) {
                     { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 } else null,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -67,7 +76,7 @@ fun DateRangeSelector(
             initialSelectedStartDateMillis = customStartDate,
             initialSelectedEndDateMillis = customEndDate
         )
-        
+
         DatePickerDialog(
             onDismissRequest = {
                 showDatePicker = false
@@ -75,6 +84,7 @@ fun DateRangeSelector(
                     onFilterSelected(DateRangeFilter.THIS_MONTH)
                 }
             },
+            shape = RoundedCornerShape(28.dp),
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -89,7 +99,7 @@ fun DateRangeSelector(
                     },
                     enabled = datePickerState.selectedStartDateMillis != null && datePickerState.selectedEndDateMillis != null
                 ) {
-                    Text("OK")
+                    Text("OK", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
@@ -101,7 +111,7 @@ fun DateRangeSelector(
                         }
                     }
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         ) {

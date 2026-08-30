@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
@@ -61,9 +62,9 @@ import com.spendwise.app.data.local.entity.CategoryEntity
 import com.spendwise.app.model.BudgetWithSpending
 import com.spendwise.app.ui.components.CategoryIconHelper
 import com.spendwise.app.ui.components.EmptyState
-import com.spendwise.app.ui.theme.Amber500
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
+import com.spendwise.app.ui.theme.GoogleYellow
 import com.spendwise.app.viewmodel.BudgetViewModel
 import java.util.Locale
 
@@ -86,9 +87,9 @@ fun BudgetScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddBudgetDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                shape = CircleShape
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Add Budget")
             }
@@ -98,16 +99,24 @@ fun BudgetScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Month Selector Bar
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            )
+                        )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -116,18 +125,39 @@ fun BudgetScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { viewModel.previousMonth() }) {
-                            Icon(imageVector = Icons.Default.ChevronLeft, contentDescription = "Previous Month")
+                        IconButton(
+                            onClick = { viewModel.previousMonth() },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronLeft,
+                                contentDescription = "Previous Month",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
 
                         Text(
                             text = viewModel.getFormattedMonthYear(),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
-                        IconButton(onClick = { viewModel.nextMonth() }) {
-                            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Next Month")
+                        IconButton(
+                            onClick = { viewModel.nextMonth() },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "Next Month",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -137,9 +167,17 @@ fun BudgetScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            )
+                        )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -154,27 +192,28 @@ fun BudgetScreen(
                             Text(
                                 text = "Total Budget Status",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             if (overallSummary.isOverBudget) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Rose500.copy(alpha = 0.15f))
+                                        .background(GoogleRed.copy(alpha = 0.15f))
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Warning,
                                         contentDescription = "Overbudget",
-                                        tint = Rose500,
+                                        tint = GoogleRed,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "Overbudget",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = Rose500,
+                                        color = GoogleRed,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -184,16 +223,16 @@ fun BudgetScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         val progressColor = when {
-                            overallSummary.isOverBudget -> Rose500
-                            overallSummary.progressFraction > 0.85f -> Amber500
-                            else -> Emerald500
+                            overallSummary.isOverBudget -> GoogleRed
+                            overallSummary.progressFraction > 0.85f -> GoogleYellow
+                            else -> GoogleGreen
                         }
 
                         LinearProgressIndicator(
                             progress = { overallSummary.progressFraction.coerceIn(0f, 1f) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(10.dp)
+                                .height(8.dp)
                                 .clip(CircleShape),
                             color = progressColor,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -244,6 +283,7 @@ fun BudgetScreen(
                     text = "Category Budgets",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -295,16 +335,24 @@ fun CategoryBudgetCard(
     val catIcon = CategoryIconHelper.getIcon(category.iconName)
 
     val progressColor = when {
-        budget.isOverBudget -> Rose500
-        budget.progressFraction > 0.85f -> Amber500
-        else -> Emerald500
+        budget.isOverBudget -> GoogleRed
+        budget.progressFraction > 0.85f -> GoogleYellow
+        else -> GoogleGreen
     }
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -319,7 +367,7 @@ fun CategoryBudgetCard(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(catColor.copy(alpha = 0.15f)),
+                        .background(catColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -336,7 +384,8 @@ fun CategoryBudgetCard(
                     Text(
                         text = category.name,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = if (budget.isOverBudget) {
@@ -345,7 +394,7 @@ fun CategoryBudgetCard(
                             "Remaining: $currencySymbol${String.format(Locale.US, "%,.2f", budget.remainingAmount)}"
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (budget.isOverBudget) Rose500 else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (budget.isOverBudget) GoogleRed else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -364,7 +413,7 @@ fun CategoryBudgetCard(
                 progress = { budget.progressFraction.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp)
+                    .height(7.dp)
                     .clip(CircleShape),
                 color = progressColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -410,6 +459,7 @@ fun AddBudgetDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
         title = { Text("Set Category Budget", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -483,14 +533,14 @@ fun AddBudgetDialog(
                     }
                     onConfirm(selectedCategoryId, parsedLimit)
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             ) {
                 Text("Set Budget")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

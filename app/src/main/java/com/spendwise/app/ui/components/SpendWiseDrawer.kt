@@ -17,36 +17,29 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Emerald600
-
-import androidx.compose.material.icons.filled.Label
 
 enum class DrawerDestination(
     val title: String,
@@ -69,14 +62,14 @@ fun SpendWiseDrawerContent(
     modifier: Modifier = Modifier
 ) {
     ModalDrawerSheet(
-        modifier = modifier.width(310.dp),
+        modifier = modifier.width(320.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
+        drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .padding(horizontal = 18.dp, vertical = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // App Header
@@ -86,24 +79,20 @@ fun SpendWiseDrawerContent(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(46.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Emerald500, Emerald600)
-                            )
-                        ),
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccountBalanceWallet,
                         contentDescription = "SpendWise Logo",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
                 Column {
                     Text(
@@ -113,7 +102,7 @@ fun SpendWiseDrawerContent(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Personal Finance & Budget",
+                        text = "Smart Personal Finance",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -121,10 +110,10 @@ fun SpendWiseDrawerContent(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Navigation Items
+            // Navigation Items (Google Material 3 Pill Selection)
             DrawerDestination.entries.forEach { destination ->
                 val isSelected = currentDestination == destination
 
@@ -133,7 +122,7 @@ fun SpendWiseDrawerContent(
                         Icon(
                             imageVector = destination.icon,
                             contentDescription = destination.title,
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     label = {
@@ -144,38 +133,46 @@ fun SpendWiseDrawerContent(
                     },
                     selected = isSelected,
                     onClick = { onDestinationSelected(destination) },
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.padding(vertical = 3.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurface
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
             }
 
             Spacer(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Footer
+            // Footer Info Pill
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Currency: $currencySymbol",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Text(
+                        text = "Currency: $currencySymbol",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "v2.0.0 (Offline)",
+                    text = "Offline & Private",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
         }

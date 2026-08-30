@@ -30,8 +30,8 @@ import com.spendwise.app.data.local.entity.CategoryEntity
 import com.spendwise.app.data.local.entity.TagEntity
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -84,6 +84,7 @@ fun AddEditTransactionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
@@ -103,7 +104,8 @@ fun AddEditTransactionSheet(
                 Text(
                     text = if (initialItem == null) "New Transaction" else "Edit Transaction",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 if (initialItem != null && onDelete != null) {
@@ -111,13 +113,13 @@ fun AddEditTransactionSheet(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",
-                            tint = Rose500
+                            tint = GoogleRed
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Transaction Type Selector
             SingleChoiceSegmentedButtonRow(
@@ -128,30 +130,30 @@ fun AddEditTransactionSheet(
                     onClick = { type = TransactionType.EXPENSE },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = Rose500.copy(alpha = 0.15f),
-                        activeContentColor = Rose500,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        activeContainerColor = GoogleRed.copy(alpha = 0.15f),
+                        activeContentColor = GoogleRed,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
-                    Text("Expense", fontWeight = FontWeight.SemiBold)
+                    Text("Expense", fontWeight = FontWeight.Bold)
                 }
                 SegmentedButton(
                     selected = type == TransactionType.INCOME,
                     onClick = { type = TransactionType.INCOME },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = Emerald500.copy(alpha = 0.15f),
-                        activeContentColor = Emerald500,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        activeContainerColor = GoogleGreen.copy(alpha = 0.15f),
+                        activeContentColor = GoogleGreen,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
-                    Text("Income", fontWeight = FontWeight.SemiBold)
+                    Text("Income", fontWeight = FontWeight.Bold)
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Amount Input
             OutlinedTextField(
@@ -184,13 +186,14 @@ fun AddEditTransactionSheet(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Account Selector
             if (accounts.isNotEmpty()) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "Account",
                         style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -218,7 +221,7 @@ fun AddEditTransactionSheet(
                                     selectedContainerColor = accColor,
                                     selectedLabelColor = Color.White
                                 ),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(14.dp)
                             )
                         }
                     }
@@ -231,6 +234,7 @@ fun AddEditTransactionSheet(
                 Text(
                     text = "Category",
                     style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -258,20 +262,21 @@ fun AddEditTransactionSheet(
                                 selectedContainerColor = catColor,
                                 selectedLabelColor = Color.White
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(14.dp)
                         )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Tag Selector
             if (tags.isNotEmpty()) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "Tags",
                         style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -294,7 +299,7 @@ fun AddEditTransactionSheet(
                                     selectedContainerColor = tagColor.copy(alpha = 0.2f),
                                     selectedLabelColor = tagColor
                                 ),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(14.dp)
                             )
                         }
                     }
@@ -308,7 +313,7 @@ fun AddEditTransactionSheet(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                         .clickable { showDatePicker = true }
                         .padding(horizontal = 12.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -329,13 +334,13 @@ fun AddEditTransactionSheet(
                         )
                     }
                 }
-                
+
                 // Time Picker Button
                 Row(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                         .clickable { showTimePicker = true }
                         .padding(horizontal = 12.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -410,7 +415,7 @@ fun AddEditTransactionSheet(
                     .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (type == TransactionType.EXPENSE) Rose500 else Emerald500
+                    containerColor = if (type == TransactionType.EXPENSE) GoogleRed else GoogleGreen
                 )
             ) {
                 Text(
@@ -433,7 +438,6 @@ fun AddEditTransactionSheet(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { utcMillis ->
-                            // Convert UTC millis to local date to avoid timezone shift
                             val utcDate = Instant.ofEpochMilli(utcMillis).atZone(ZoneId.of("UTC")).toLocalDate()
                             val localTime = Instant.ofEpochMilli(dateTimestamp).atZone(ZoneId.systemDefault()).toLocalTime()
                             val localDateTime = LocalDateTime.of(utcDate, localTime)
@@ -454,7 +458,7 @@ fun AddEditTransactionSheet(
             DatePicker(state = datePickerState)
         }
     }
-    
+
     if (showTimePicker) {
         val localTime = Instant.ofEpochMilli(dateTimestamp).atZone(ZoneId.systemDefault()).toLocalTime()
         val timePickerState = rememberTimePickerState(
@@ -462,10 +466,11 @@ fun AddEditTransactionSheet(
             initialMinute = localTime.minute,
             is24Hour = false
         )
-        
+
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Select Time") },
+            shape = RoundedCornerShape(28.dp),
+            title = { Text("Select Time", fontWeight = FontWeight.Bold) },
             text = {
                 TimePicker(state = timePickerState)
             },

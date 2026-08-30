@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spendwise.app.data.repository.SpendWiseRepository
 import com.spendwise.app.ui.components.BottomNavDestination
@@ -129,7 +131,7 @@ fun MainScreen(
                     title = {
                         Text(
                             text = currentTitle,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -143,8 +145,24 @@ fun MainScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
-                                contentDescription = "Open Navigation Drawer"
+                                contentDescription = "Open Navigation Drawer",
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
+                        }
+                    },
+                    actions = {
+                        if (activeScreen !is ActiveScreen.Drawer || (activeScreen as? ActiveScreen.Drawer)?.destination != DrawerDestination.SETTINGS) {
+                            IconButton(
+                                onClick = {
+                                    activeScreen = ActiveScreen.Drawer(DrawerDestination.SETTINGS)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

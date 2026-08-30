@@ -65,8 +65,8 @@ import com.spendwise.app.data.local.entity.CategoryEntity
 import com.spendwise.app.data.local.entity.RecurringTransactionEntity
 import com.spendwise.app.model.RecurrenceFrequency
 import com.spendwise.app.model.TransactionType
-import com.spendwise.app.ui.theme.Emerald500
-import com.spendwise.app.ui.theme.Rose500
+import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.GoogleRed
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -107,13 +107,11 @@ fun RecurringTransactionSheet(
     }
     var title by remember { mutableStateOf(initialRule?.title ?: "") }
     var selectedCategoryId by remember { mutableStateOf(initialRule?.categoryId) }
-    var selectedAccountId by remember {
-        mutableStateOf(initialRule?.accountId ?: accounts.firstOrNull { it.isDefault }?.id ?: accounts.firstOrNull()?.id)
-    }
+    var selectedAccountId by remember { mutableStateOf(initialRule?.accountId) }
     var selectedFrequency by remember { mutableStateOf(initialRule?.frequency ?: RecurrenceFrequency.MONTHLY) }
     var startDateMillis by remember { mutableLongStateOf(initialRule?.startDate ?: startOfDay(System.currentTimeMillis())) }
     var endDateEnabled by remember { mutableStateOf(initialRule?.endDate != null) }
-    var endDateMillis by remember { mutableLongStateOf(initialRule?.endDate ?: startDateMillis) }
+    var endDateMillis by remember { mutableLongStateOf(initialRule?.endDate ?: (startDateMillis + 30L * 24 * 60 * 60 * 1000)) }
     var note by remember { mutableStateOf(initialRule?.note ?: "") }
     var isActive by remember { mutableStateOf(initialRule?.isActive ?: true) }
 
@@ -122,13 +120,7 @@ fun RecurringTransactionSheet(
     var showEndDatePicker by remember { mutableStateOf(false) }
 
     val filteredCategories = categories.filter { it.type == type }
-    val dateFormatter = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
-
-    LaunchedEffect(accounts) {
-        if (accounts.isNotEmpty() && (selectedAccountId == null || accounts.none { it.id == selectedAccountId })) {
-            selectedAccountId = accounts.firstOrNull { it.isDefault }?.id ?: accounts.firstOrNull()?.id
-        }
-    }
+    val dateFormatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
 
     LaunchedEffect(type) {
         if (selectedCategoryId != null && filteredCategories.none { it.id == selectedCategoryId }) {
@@ -139,6 +131,7 @@ fun RecurringTransactionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
@@ -157,48 +150,53 @@ fun RecurringTransactionSheet(
                 Text(
                     text = if (initialRule == null) "New Recurring Rule" else "Edit Recurring Rule",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 if (initialRule != null && onDelete != null) {
                     IconButton(onClick = { onDelete(); onDismiss() }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete recurring rule",
-                            tint = Rose500
+                            contentDescription = "Delete",
+                            tint = GoogleRed
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
+            // Active toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = "Rule Active",
+                        text = "Rule Status",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isActive) "This rule will keep generating transactions." else "Paused rules will not generate transactions.",
+                        text = if (isActive) "Automatically generated when due" else "Rule is paused",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
                 Switch(
                     checked = isActive,
                     onCheckedChange = { isActive = it },
-                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White)
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 )
             }
 
@@ -210,26 +208,26 @@ fun RecurringTransactionSheet(
                     onClick = { type = TransactionType.EXPENSE },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = Rose500.copy(alpha = 0.15f),
-                        activeContentColor = Rose500,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        activeContainerColor = GoogleRed.copy(alpha = 0.15f),
+                        activeContentColor = GoogleRed,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
-                    Text("Expense", fontWeight = FontWeight.SemiBold)
+                    Text("Expense", fontWeight = FontWeight.Bold)
                 }
                 SegmentedButton(
                     selected = type == TransactionType.INCOME,
                     onClick = { type = TransactionType.INCOME },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = Emerald500.copy(alpha = 0.15f),
-                        activeContentColor = Emerald500,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        activeContainerColor = GoogleGreen.copy(alpha = 0.15f),
+                        activeContentColor = GoogleGreen,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
-                    Text("Income", fontWeight = FontWeight.SemiBold)
+                    Text("Income", fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -531,7 +529,7 @@ fun RecurringTransactionSheet(
                     .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (type == TransactionType.EXPENSE) Rose500 else Emerald500
+                    containerColor = if (type == TransactionType.EXPENSE) GoogleRed else GoogleGreen
                 )
             ) {
                 Text(

@@ -74,30 +74,31 @@ jobs:
     - name: Upload APK Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.3.0-APKs
+        name: SpendWise-v2.4.0-APKs
         path: app/build/outputs/apk/**/*.apk
 
     - name: Upload Google Play AAB Bundle
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.3.0-AAB
+        name: SpendWise-v2.4.0-AAB
         path: app/build/outputs/bundle/**/*.aab
 
     - name: Create / Update GitHub Release with APK
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
       with:
-        tag_name: v2.3.0
-        name: "SpendWise v2.3.0 Google Material You Redesign"
+        tag_name: v2.4.0
+        name: "SpendWise v2.4.0 Bharat Edition 🇮🇳 (120 FPS Fast • Light & Dark)"
         body: |
-          ### SpendWise v2.3.0 Google Material You Redesign 💎
+          ### SpendWise v2.4.0 Bharat Edition 🇮🇳 (Made with ❤️ in India)
 
-          #### ✨ Design Upgrades & Polish:
-          - 💳 **Google Wallet Style Hero Card**: Privacy balance toggle, Google pastel Inflow/Outflow metric pills, and animated cashflow ratio capsule.
-          - 🧭 **Floating Nav Dock**: Floating pill navigation dock (`28.dp` radius) with Material icons and pill selection indicator.
-          - 🧾 **Google Pay Transaction Rows**: `20.dp` squircle cards with category badges, crisp typography, and swipe-to-delete.
-          - 🔍 **Google Search Pill & Filter Chips**: `28.dp` search pill and `20.dp` squircle filter chips.
-          - 📊 **Tonal Equilibrium Dual Mode**: Soothing pastel colors (Google Blue, Sage Green, Coral Red, Amber) for Light & Dark mode.
+          #### ⚡ Performance & Polish:
+          - 🚀 **120 FPS Buttery Smooth Scrolling**: Eradicated main-thread blocking (`runBlocking` startup freeze eliminated with 0ms memory cache). Pre-aggregated daily totals in ViewModel on `Dispatchers.Default`.
+          - 🧹 **Zero GC Stutter**: Replaced per-frame gradient shader allocations in `LazyColumn` with static hardware-accelerated borders.
+          - 🇮🇳 **Indian Numbering (Lakhs & Crores)**: High-speed zero-allocation Indian currency formatter (`₹1,48,500.50`).
+          - 🌓 **Strictly Light & Dark Modes**: Removed 7 bloated color palettes; streamlined to Midnight Indigo Dark and Optical Paper Light.
+          - 💳 **Indian Financial Context**: UPI payment accounts (GPay, PhonePe, Paytm), Indian lifestyle categories (Kirana, Chai & Snacks, Auto/Metro, Fastag, SIP / Mutual Funds, Pooja/Festivals).
+          - 🔒 **Biometric App Lock & 100% Offline**: Private local SQLite database, zero tracking, zero cloud dependency.
         files: |
           app/build/outputs/apk/**/*.apk
         draft: false

@@ -1,175 +1,112 @@
 package com.spendwise.app.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.spendwise.app.model.ThemeMode
 import com.spendwise.app.model.ThemePalette
 
-data class PaletteColors(
-    val primaryLight: Color,
-    val primaryContainerLight: Color,
-    val onPrimaryContainerLight: Color,
-    val secondaryLight: Color,
-    val primaryDark: Color,
-    val primaryContainerDark: Color,
-    val onPrimaryContainerDark: Color,
-    val secondaryDark: Color
+/**
+ * Bharat Modern Ledger Design System
+ * Inspired by modern Indian fintech applications (CRED, Jupiter, Fi Money).
+ * Clean, high-contrast, lightning-fast Light & Dark themes.
+ */
+
+// Core Brand Colors
+val BharatBlue = Color(0xFF0052FF)           // Electric Action Blue
+val BharatBlueDark = Color(0xFF3B82F6)       // Vibrant Blue for Dark Mode
+val SaffronPulse = Color(0xFFFF3D00)         // Saffron Accent for "Made in India"
+val SaffronPulseDark = Color(0xFFFF5722)     // Warm Saffron for Dark Mode
+
+// Functional Cashflow Accents
+val InflowGreen = Color(0xFF00C853)          // Crisp Inflow Green
+val InflowGreenDark = Color(0xFF10B981)      // Emerald Inflow
+val OutflowRed = Color(0xFFDC2626)           // Crisp Outflow Red
+val OutflowRedDark = Color(0xFFEF4444)       // Coral Outflow Red
+
+// Dark Canvas (Stitch Midnight Indigo)
+val MidnightDarkBackground = Color(0xFF0A0F1D)
+val MidnightDarkSurface = Color(0xFF161E2E)
+val MidnightDarkSurfaceElevated = Color(0xFF1E293B)
+val MidnightDarkBorder = Color(0xFF283044)
+val MidnightDarkTextPrimary = Color(0xFFF8FAFC)
+val MidnightDarkTextSecondary = Color(0xFF94A3B8)
+
+// Light Canvas (Optical Paper White)
+val PaperLightBackground = Color(0xFFF8FAFC)
+val PaperLightSurface = Color(0xFFFFFFFF)
+val PaperLightSurfaceElevated = Color(0xFFF1F5F9)
+val PaperLightBorder = Color(0xFFE2E8F0)
+val PaperLightTextPrimary = Color(0xFF0F172A)
+val PaperLightTextSecondary = Color(0xFF64748B)
+
+val BharatDarkColorScheme: ColorScheme = darkColorScheme(
+    primary = BharatBlueDark,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF1E3A8A),
+    onPrimaryContainer = Color(0xFFDBEAFE),
+    secondary = SaffronPulseDark,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFF431407),
+    onSecondaryContainer = Color(0xFFFFCCBC),
+    tertiary = InflowGreenDark,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFF064E3B),
+    onTertiaryContainer = Color(0xFFA7F3D0),
+    error = OutflowRedDark,
+    onError = Color.White,
+    errorContainer = Color(0xFF7F1D1D),
+    onErrorContainer = Color(0xFFFECACA),
+    background = MidnightDarkBackground,
+    onBackground = MidnightDarkTextPrimary,
+    surface = MidnightDarkSurface,
+    onSurface = MidnightDarkTextPrimary,
+    surfaceVariant = MidnightDarkSurfaceElevated,
+    onSurfaceVariant = MidnightDarkTextSecondary,
+    outline = MidnightDarkBorder,
+    outlineVariant = Color(0xFF1E293B)
 )
 
-fun getColorsForPalette(palette: ThemePalette): PaletteColors {
-    return when (palette) {
-        ThemePalette.EMERALD -> PaletteColors(
-            primaryLight = Color(0xFF006C4C),
-            primaryContainerLight = Color(0xFF8EF7C7),
-            onPrimaryContainerLight = Color(0xFF002114),
-            secondaryLight = Color(0xFF4C6357),
-            primaryDark = Color(0xFF71DAAC),
-            primaryContainerDark = Color(0xFF005138),
-            onPrimaryContainerDark = Color(0xFF8EF7C7),
-            secondaryDark = Color(0xFFB3CCBE)
-        )
-        ThemePalette.OCEAN -> PaletteColors(
-            primaryLight = Color(0xFF0B57D0),
-            primaryContainerLight = Color(0xFFD3E3FD),
-            onPrimaryContainerLight = Color(0xFF041E49),
-            secondaryLight = Color(0xFF00639B),
-            primaryDark = Color(0xFFA8C7FA),
-            primaryContainerDark = Color(0xFF0842A0),
-            onPrimaryContainerDark = Color(0xFFD3E3FD),
-            secondaryDark = Color(0xFF91CDFF)
-        )
-        ThemePalette.AMETHYST -> PaletteColors(
-            primaryLight = Color(0xFF6750A4),
-            primaryContainerLight = Color(0xFFEADDFF),
-            onPrimaryContainerLight = Color(0xFF21005D),
-            secondaryLight = Color(0xFF625B71),
-            primaryDark = Color(0xFFD0BCFF),
-            primaryContainerDark = Color(0xFF4F378B),
-            onPrimaryContainerDark = Color(0xFFEADDFF),
-            secondaryDark = Color(0xFFCCC2DC)
-        )
-        ThemePalette.SUNSET -> PaletteColors(
-            primaryLight = Color(0xFF7D5700),
-            primaryContainerLight = Color(0xFFFFDEA3),
-            onPrimaryContainerLight = Color(0xFF281900),
-            secondaryLight = Color(0xFF6C5C3F),
-            primaryDark = Color(0xFFFFBA28),
-            primaryContainerDark = Color(0xFF5F4100),
-            onPrimaryContainerDark = Color(0xFFFFDEA3),
-            secondaryDark = Color(0xFFD7C4A0)
-        )
-        ThemePalette.ROSE -> PaletteColors(
-            primaryLight = Color(0xFF984061),
-            primaryContainerLight = Color(0xFFFFD9E2),
-            onPrimaryContainerLight = Color(0xFF3E001D),
-            secondaryLight = Color(0xFF74565F),
-            primaryDark = Color(0xFFFFB0C8),
-            primaryContainerDark = Color(0xFF7B2949),
-            onPrimaryContainerDark = Color(0xFFFFD9E2),
-            secondaryDark = Color(0xFFE2BDC6)
-        )
-        ThemePalette.NORDIC -> PaletteColors(
-            primaryLight = Color(0xFF006A6A),
-            primaryContainerLight = Color(0xFF70F7F7),
-            onPrimaryContainerLight = Color(0xFF002020),
-            secondaryLight = Color(0xFF4A6363),
-            primaryDark = Color(0xFF4DDADA),
-            primaryContainerDark = Color(0xFF004F4F),
-            onPrimaryContainerDark = Color(0xFF70F7F7),
-            secondaryDark = Color(0xFFB1CCCC)
-        )
-        ThemePalette.CYBERPUNK -> PaletteColors(
-            primaryLight = Color(0xFF00677F),
-            primaryContainerLight = Color(0xFFB6EAFF),
-            onPrimaryContainerLight = Color(0xFF001F28),
-            secondaryLight = Color(0xFF4C626B),
-            primaryDark = Color(0xFF5BD5FB),
-            primaryContainerDark = Color(0xFF004D60),
-            onPrimaryContainerDark = Color(0xFFB6EAFF),
-            secondaryDark = Color(0xFFB3CAD4)
-        )
-    }
-}
-
-fun buildColorScheme(
-    darkTheme: Boolean,
-    isAmoled: Boolean,
-    palette: ThemePalette
-): ColorScheme {
-    val colors = getColorsForPalette(palette)
-    return if (darkTheme) {
-        val bg = if (isAmoled) AmoledBlack else DarkSurfaceBackground
-        val surface = if (isAmoled) AmoledSurfaceCard else DarkSurfaceCard
-        val surfaceElevated = if (isAmoled) AmoledSurfaceElevated else DarkSurfaceElevated
-        val outline = if (isAmoled) AmoledBorder else DarkBorderOutline
-        val outlineVariant = if (isAmoled) AmoledBorder else DarkBorder
-
-        darkColorScheme(
-            primary = colors.primaryDark,
-            onPrimary = Color(0xFF003322),
-            primaryContainer = colors.primaryContainerDark,
-            onPrimaryContainer = colors.onPrimaryContainerDark,
-            secondary = colors.secondaryDark,
-            onSecondary = Color(0xFF1E3328),
-            secondaryContainer = colors.secondaryDark.copy(alpha = 0.2f),
-            onSecondaryContainer = colors.secondaryDark,
-            error = GoogleRedDark,
-            onError = Color(0xFF601410),
-            errorContainer = GoogleRedContainerDark,
-            onErrorContainer = GoogleOnRedContainerDark,
-            background = bg,
-            onBackground = DarkTextPrimary,
-            surface = surface,
-            onSurface = DarkTextPrimary,
-            surfaceVariant = surfaceElevated,
-            onSurfaceVariant = DarkTextSecondary,
-            outline = outline,
-            outlineVariant = outlineVariant
-        )
-    } else {
-        lightColorScheme(
-            primary = colors.primaryLight,
-            onPrimary = Color.White,
-            primaryContainer = colors.primaryContainerLight,
-            onPrimaryContainer = colors.onPrimaryContainerLight,
-            secondary = colors.secondaryLight,
-            onSecondary = Color.White,
-            secondaryContainer = colors.primaryContainerLight.copy(alpha = 0.6f),
-            onSecondaryContainer = colors.primaryLight,
-            error = GoogleRed,
-            onError = Color.White,
-            errorContainer = GoogleRedContainer,
-            onErrorContainer = GoogleOnRedContainer,
-            background = LightSurfaceBackground,
-            onBackground = LightTextPrimary,
-            surface = LightSurfaceCard,
-            onSurface = LightTextPrimary,
-            surfaceVariant = LightSurfaceElevated,
-            onSurfaceVariant = LightTextSecondary,
-            outline = LightBorderOutline,
-            outlineVariant = LightBorder
-        )
-    }
-}
+val BharatLightColorScheme: ColorScheme = lightColorScheme(
+    primary = BharatBlue,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFDBEAFE),
+    onPrimaryContainer = Color(0xFF1E40AF),
+    secondary = SaffronPulse,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFEBE5),
+    onSecondaryContainer = Color(0xFF992400),
+    tertiary = InflowGreen,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFD1FAE5),
+    onTertiaryContainer = Color(0xFF065F46),
+    error = OutflowRed,
+    onError = Color.White,
+    errorContainer = Color(0xFFFEE2E2),
+    onErrorContainer = Color(0xFF991B1B),
+    background = PaperLightBackground,
+    onBackground = PaperLightTextPrimary,
+    surface = PaperLightSurface,
+    onSurface = PaperLightTextPrimary,
+    surfaceVariant = PaperLightSurfaceElevated,
+    onSurfaceVariant = PaperLightTextSecondary,
+    outline = PaperLightBorder,
+    outlineVariant = Color(0xFFE2E8F0)
+)
 
 @Composable
 fun SpendWiseTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    themePalette: ThemePalette = ThemePalette.OCEAN,
+    themePalette: ThemePalette = ThemePalette.EMERALD,
     isAmoledBlack: Boolean = false,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
@@ -180,13 +117,7 @@ fun SpendWiseTheme(
         ThemeMode.DARK -> true
     }
 
-    val context = LocalContext.current
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        else -> buildColorScheme(darkTheme = darkTheme, isAmoled = isAmoledBlack, palette = themePalette)
-    }
+    val colorScheme = if (darkTheme) BharatDarkColorScheme else BharatLightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {

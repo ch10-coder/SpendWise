@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
-import com.spendwise.app.ui.theme.GoogleGreen
-import com.spendwise.app.ui.theme.GoogleRed
+import com.spendwise.app.ui.theme.InflowGreen
+import com.spendwise.app.ui.theme.OutflowRed
+import com.spendwise.app.util.IndianCurrencyFormatter
 import java.util.Locale
 
 private val TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.US)
@@ -55,8 +56,8 @@ fun TransactionItem(
     }
     val amountColor = when {
         isTransfer -> MaterialTheme.colorScheme.primary
-        isIncome -> GoogleGreen
-        else -> GoogleRed
+        isIncome -> InflowGreen
+        else -> OutflowRed
     }
 
     val categoryColor = category?.let { CategoryIconHelper.parseColor(it.colorHex) } ?: MaterialTheme.colorScheme.primary
@@ -75,8 +76,8 @@ fun TransactionItem(
         }
     }
 
-    val formattedAmount = remember(transaction.amount) {
-        String.format(Locale.US, "%,.2f", transaction.amount)
+    val formattedAmount = remember(transaction.amount, currencySymbol) {
+        IndianCurrencyFormatter.formatInr(transaction.amount, currencySymbol)
     }
 
     val content = @Composable {
@@ -89,15 +90,8 @@ fun TransactionItem(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                    )
-                )
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -203,7 +197,7 @@ fun TransactionItem(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = "$amountPrefix$currencySymbol$formattedAmount",
+                        text = "$amountPrefix$formattedAmount",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = amountColor

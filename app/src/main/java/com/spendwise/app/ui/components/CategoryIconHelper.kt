@@ -57,7 +57,9 @@ object CategoryIconHelper {
         "Chair" to Icons.Default.Chair,
         "Microwave" to Icons.Default.Microwave,
         "SelfImprovement" to Icons.Default.SelfImprovement,
-        "Commute" to Icons.Default.Commute
+        "Commute" to Icons.Default.Commute,
+        "QrCode" to Icons.Default.QrCode,
+        "CurrencyRupee" to Icons.Default.CurrencyRupee
     )
 
     fun getIcon(name: String): ImageVector {

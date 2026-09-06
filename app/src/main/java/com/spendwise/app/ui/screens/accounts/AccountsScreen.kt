@@ -26,6 +26,7 @@ import com.spendwise.app.model.AccountWithBalance
 import com.spendwise.app.ui.components.CategoryIconHelper
 import com.spendwise.app.ui.theme.GoogleGreen
 import com.spendwise.app.ui.theme.GoogleRed
+import com.spendwise.app.util.IndianCurrencyFormatter
 import java.util.Locale
 
 import com.spendwise.app.viewmodel.AccountsViewModel
@@ -126,7 +127,7 @@ fun AccountCard(
     val accountIcon = CategoryIconHelper.getIcon(item.account.iconName)
 
     val balanceColor = if (item.calculatedBalance < 0 && !isBalanceHidden) GoogleRed else if (item.calculatedBalance > 0 && !isBalanceHidden) GoogleGreen else MaterialTheme.colorScheme.onSurface
-    val balanceText = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", item.calculatedBalance)}"
+    val balanceText = if (isBalanceHidden) "••••••" else IndianCurrencyFormatter.formatInr(item.calculatedBalance, currencySymbol)
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
@@ -175,13 +176,9 @@ fun AccountCard(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    )
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {

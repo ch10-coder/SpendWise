@@ -29,10 +29,11 @@ enum class ThemePalette(
 
 /** Account types for multi-account support */
 enum class AccountType(val displayName: String) {
-    CASH("Cash"),
+    UPI("UPI (GPay / PhonePe / Paytm)"),
+    CASH("Cash in Wallet"),
     BANK("Bank Account"),
     CREDIT_CARD("Credit Card"),
-    SAVINGS("Savings"),
+    SAVINGS("Savings / FD"),
     DIGITAL_WALLET("Digital Wallet")
 }
 
@@ -52,17 +53,16 @@ data class CurrencyOption(
 ) {
     companion object {
         val ALL = listOf(
+            CurrencyOption("INR", "₹", "Indian Rupee"),
             CurrencyOption("USD", "$", "US Dollar"),
             CurrencyOption("EUR", "€", "Euro"),
             CurrencyOption("GBP", "£", "British Pound"),
-            CurrencyOption("INR", "₹", "Indian Rupee"),
             CurrencyOption("JPY", "¥", "Japanese Yen"),
             CurrencyOption("CAD", "CA$", "Canadian Dollar"),
             CurrencyOption("AUD", "AU$", "Australian Dollar"),
-            CurrencyOption("BRL", "R$", "Brazilian Real"),
-            CurrencyOption("NGN", "₦", "Nigerian Naira"),
-            CurrencyOption("PHP", "₱", "Philippine Peso")
+            CurrencyOption("AED", "د.إ", "UAE Dirham"),
+            CurrencyOption("SGD", "S$", "Singapore Dollar")
         )
-        val DEFAULT = ALL[0]
+        val DEFAULT = ALL[0] // Indian Rupee (INR) is default!
     }
 }

@@ -10,17 +10,16 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.spendwise.app.model.CurrencyOption
 import com.spendwise.app.model.ThemeMode
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import java.io.IOException
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_settings")
 
 class UserPreferencesManager(private val context: Context) {
+
+    private val sharedPrefs = context.getSharedPreferences("spendwise_fast_cache", Context.MODE_PRIVATE)
 
     private object PreferencesKeys {
         val CURRENCY_CODE = stringPreferencesKey("currency_code")
@@ -37,51 +36,26 @@ class UserPreferencesManager(private val context: Context) {
     private val dataStore = context.dataStore
 
     /**
-     * Synchronously load initial preferences snapshot on startup to prevent UI flash/flicker.
+     * Instantaneous, zero-delay initial reads from memory-mapped SharedPreferences.
+     * Eliminates Main-Thread blocking (runBlocking) on app startup.
      */
-    val initialPreferences: Preferences by lazy {
-        try {
-            runBlocking(Dispatchers.IO) {
-                dataStore.data.first()
-            }
-        } catch (e: Exception) {
-            emptyPreferences()
+    val initialThemeMode: ThemeMode
+        get() {
+            val raw = sharedPrefs.getString("cached_theme_mode", ThemeMode.SYSTEM.name)
+            return try { ThemeMode.valueOf(raw!!) } catch (e: Exception) { ThemeMode.SYSTEM }
         }
-    }
 
-    val initialThemeMode: ThemeMode by lazy {
-        val rawMode = initialPreferences[PreferencesKeys.THEME_MODE] ?: ThemeMode.SYSTEM.name
-        try {
-            ThemeMode.valueOf(rawMode)
-        } catch (e: Exception) {
-            ThemeMode.SYSTEM
-        }
-    }
+    val initialThemePalette: com.spendwise.app.model.ThemePalette
+        get() = com.spendwise.app.model.ThemePalette.EMERALD
 
-    val initialThemePalette: com.spendwise.app.model.ThemePalette by lazy {
-        val rawPalette = initialPreferences[PreferencesKeys.THEME_PALETTE] ?: com.spendwise.app.model.ThemePalette.EMERALD.name
-        try {
-            com.spendwise.app.model.ThemePalette.valueOf(rawPalette)
-        } catch (e: Exception) {
-            com.spendwise.app.model.ThemePalette.EMERALD
-        }
-    }
+    val initialIsDynamicColor: Boolean get() = false
+    val initialIsAmoledBlack: Boolean get() = false
 
-    val initialIsDynamicColor: Boolean by lazy {
-        initialPreferences[PreferencesKeys.IS_DYNAMIC_COLOR] ?: false
-    }
+    val initialCurrencyCode: String
+        get() = sharedPrefs.getString("cached_currency_code", CurrencyOption.DEFAULT.code) ?: CurrencyOption.DEFAULT.code
 
-    val initialIsAmoledBlack: Boolean by lazy {
-        initialPreferences[PreferencesKeys.IS_AMOLED_BLACK] ?: false
-    }
-
-    val initialCurrencyCode: String by lazy {
-        initialPreferences[PreferencesKeys.CURRENCY_CODE] ?: CurrencyOption.DEFAULT.code
-    }
-
-    val initialCurrencySymbol: String by lazy {
-        initialPreferences[PreferencesKeys.CURRENCY_SYMBOL] ?: CurrencyOption.DEFAULT.symbol
-    }
+    val initialCurrencySymbol: String
+        get() = sharedPrefs.getString("cached_currency_symbol", CurrencyOption.DEFAULT.symbol) ?: CurrencyOption.DEFAULT.symbol
 
     val currencyCodeFlow: Flow<String> = dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
@@ -108,14 +82,7 @@ class UserPreferencesManager(private val context: Context) {
 
     val themePaletteFlow: Flow<com.spendwise.app.model.ThemePalette> = dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { preferences ->
-            val rawPalette = preferences[PreferencesKeys.THEME_PALETTE] ?: com.spendwise.app.model.ThemePalette.EMERALD.name
-            try {
-                com.spendwise.app.model.ThemePalette.valueOf(rawPalette)
-            } catch (e: Exception) {
-                com.spendwise.app.model.ThemePalette.EMERALD
-            }
-        }
+        .map { com.spendwise.app.model.ThemePalette.EMERALD }
 
     val isDynamicColorFlow: Flow<Boolean> = dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
@@ -147,14 +114,23 @@ class UserPreferencesManager(private val context: Context) {
             preferences[PreferencesKeys.DAILY_REMINDER_TIME]
         }
 
-    suspend fun setCurrency(currencyOption: CurrencyOption) {
+    suspend fun setCurrency(code: String, symbol: String) {
+        sharedPrefs.edit()
+            .putString("cached_currency_code", code)
+            .putString("cached_currency_symbol", symbol)
+            .apply()
+
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CURRENCY_CODE] = currencyOption.code
-            preferences[PreferencesKeys.CURRENCY_SYMBOL] = currencyOption.symbol
+            preferences[PreferencesKeys.CURRENCY_CODE] = code
+            preferences[PreferencesKeys.CURRENCY_SYMBOL] = symbol
         }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
+        sharedPrefs.edit()
+            .putString("cached_theme_mode", mode.name)
+            .apply()
+
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode.name
         }

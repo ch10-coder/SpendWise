@@ -1,12 +1,9 @@
 package com.spendwise.app.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,9 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wallet
@@ -27,34 +23,33 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.spendwise.app.ui.theme.GoogleBlue
-import com.spendwise.app.ui.theme.GoogleGreen
-import com.spendwise.app.ui.theme.GoogleGreenDark
-import com.spendwise.app.ui.theme.GoogleRed
-import com.spendwise.app.ui.theme.GoogleRedDark
-import java.util.Locale
+import com.spendwise.app.ui.theme.InflowGreen
+import com.spendwise.app.ui.theme.OutflowRed
+import com.spendwise.app.ui.theme.SaffronPulse
+import com.spendwise.app.util.IndianCurrencyFormatter
 
+/**
+ * Bharat Modern Ledger Summary Card
+ * Designed for Indian personal finance tracking.
+ * Features Indian numbering format, cashflow ratio, and quick actions.
+ */
 @Composable
 fun SummaryCard(
     totalBalance: Double,
     totalIncome: Double,
     totalExpense: Double,
-    currencySymbol: String,
+    currencySymbol: String = "₹",
     modifier: Modifier = Modifier,
     isBalanceHidden: Boolean = false,
     onToggleHidden: () -> Unit = {},
     onQuickAddExpense: (() -> Unit)? = null,
-    onQuickAddIncome: (() -> Unit)? = null
+    onQuickPayUpi: (() -> Unit)? = null
 ) {
     val isPositive = totalBalance >= 0
-    val primaryColor = MaterialTheme.colorScheme.primary
-
     val totalFlow = totalIncome + totalExpense
     val incomeRatio = if (totalFlow > 0) (totalIncome / totalFlow).toFloat().coerceIn(0f, 1f) else 0.5f
 
@@ -62,16 +57,9 @@ fun SummaryCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                )
-            )
-        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -79,15 +67,15 @@ fun SummaryCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Top Row: Google Wallet Style Chip & Privacy Toggle
+            // Top Header: Label & Privacy Eye
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -101,7 +89,7 @@ fun SummaryCard(
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
-                            text = "Net Cash Balance",
+                            text = "Total Net Balance",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -114,26 +102,26 @@ fun SummaryCard(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                 ) {
                     Icon(
                         imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                         contentDescription = "Toggle Balance Visibility",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(17.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Big Google Headline Balance
+            // Big Indian Headline Balance
             val balanceColor = when {
                 isBalanceHidden -> MaterialTheme.colorScheme.onSurface
-                !isPositive -> GoogleRed
+                !isPositive -> OutflowRed
                 else -> MaterialTheme.colorScheme.onSurface
             }
-            val balanceText = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", totalBalance)}"
+            val balanceText = if (isBalanceHidden) "••••••" else IndianCurrencyFormatter.formatInr(totalBalance, currencySymbol)
 
             Text(
                 text = balanceText,
@@ -147,13 +135,13 @@ fun SummaryCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Income & Expense Metric Cards (Google Pastel Pill Layout)
+            // Inflow & Outflow Pill Cards
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                GoogleMetricPill(
-                    title = "Inflow",
+                IndianMetricPill(
+                    title = "Monthly Inflow",
                     amount = totalIncome,
                     currencySymbol = currencySymbol,
                     isIncome = true,
@@ -161,8 +149,8 @@ fun SummaryCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                GoogleMetricPill(
-                    title = "Outflow",
+                IndianMetricPill(
+                    title = "Monthly Outflow",
                     amount = totalExpense,
                     currencySymbol = currencySymbol,
                     isIncome = false,
@@ -171,12 +159,12 @@ fun SummaryCard(
                 )
             }
 
-            // Cashflow Ratio Strip
+            // Cashflow Ratio Health Strip
             if (totalFlow > 0 && !isBalanceHidden) {
                 Spacer(modifier = Modifier.height(16.dp))
                 val animatedIncomeRatio by animateFloatAsState(
                     targetValue = incomeRatio,
-                    animationSpec = tween(durationMillis = 700),
+                    animationSpec = tween(durationMillis = 600),
                     label = "cashflow_ratio"
                 )
 
@@ -188,13 +176,13 @@ fun SummaryCard(
                         Text(
                             text = "Inflow ${(incomeRatio * 100).toInt()}%",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = GoogleGreen,
+                            color = InflowGreen,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "Outflow ${((1f - incomeRatio) * 100).toInt()}%",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = GoogleRed,
+                            color = OutflowRed,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -204,24 +192,54 @@ fun SummaryCard(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(CircleShape)
-                            .background(GoogleRed.copy(alpha = 0.25f))
+                            .background(OutflowRed.copy(alpha = 0.25f))
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .fillMaxWidth(animatedIncomeRatio)
                                 .clip(CircleShape)
-                                .background(GoogleGreen)
+                                .background(InflowGreen)
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Indian Quick Actions Strip
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                QuickActionChip(
+                    text = "Pay UPI",
+                    icon = Icons.Default.QrCodeScanner,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    onClick = { onQuickPayUpi?.invoke() ?: onQuickAddExpense?.invoke() },
+                    modifier = Modifier.weight(1f)
+                )
+                QuickActionChip(
+                    text = "Add Expense",
+                    icon = Icons.Default.Add,
+                    accentColor = OutflowRed,
+                    onClick = { onQuickAddExpense?.invoke() },
+                    modifier = Modifier.weight(1f)
+                )
+                QuickActionChip(
+                    text = "SIP Tracker",
+                    icon = Icons.Default.TrendingUp,
+                    accentColor = InflowGreen,
+                    onClick = { /* Navigation */ },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
 
 @Composable
-fun GoogleMetricPill(
+fun IndianMetricPill(
     title: String,
     amount: Double,
     currencySymbol: String,
@@ -229,21 +247,14 @@ fun GoogleMetricPill(
     isBalanceHidden: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val accentColor = if (isIncome) GoogleGreen else GoogleRed
+    val accentColor = if (isIncome) InflowGreen else OutflowRed
     val icon = if (isIncome) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                )
-            )
-        )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -273,7 +284,7 @@ fun GoogleMetricPill(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                val amountText = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", amount)}"
+                val amountText = if (isBalanceHidden) "••••••" else IndianCurrencyFormatter.formatInr(amount, currencySymbol)
                 Text(
                     text = amountText,
                     style = MaterialTheme.typography.titleSmall,
@@ -282,6 +293,45 @@ fun GoogleMetricPill(
                     maxLines = 1
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun QuickActionChip(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = accentColor.copy(alpha = 0.09f),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = accentColor,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                fontWeight = FontWeight.Bold,
+                color = accentColor,
+                maxLines = 1
+            )
         }
     }
 }

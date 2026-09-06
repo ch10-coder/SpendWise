@@ -23,11 +23,11 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
+import com.spendwise.app.util.IndianCurrencyFormatter
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimelineViewModel(
@@ -148,8 +148,27 @@ class TimelineViewModel(
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MonthlySummary(0.0, 0.0, 0.0))
 
+    val dateGroupedTransactions: StateFlow<List<TransactionDateGroup>> = combine(
+        filteredTransactions,
+        currencySymbol
+    ) { transactions, symbol ->
+        groupTransactionsByDate(transactions, symbol)
+    }
+    .flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val groupedTransactions: StateFlow<Map<String, List<TransactionWithCategory>>> = filteredTransactions.map { list ->
-        groupTransactionsByDate(list)
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val yesterday = today.minusDays(1)
+        list.groupBy { item ->
+            val itemDate = java.time.Instant.ofEpochMilli(item.transaction.dateTimestamp).atZone(zone).toLocalDate()
+            when (itemDate) {
+                today -> "Today"
+                yesterday -> "Yesterday"
+                else -> itemDate.format(FULL_HEADER_FORMAT)
+            }
+        }
     }
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
@@ -248,12 +267,12 @@ class TimelineViewModel(
         private val FULL_HEADER_FORMAT = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.getDefault())
     }
 
-    private fun groupTransactionsByDate(list: List<TransactionWithCategory>): Map<String, List<TransactionWithCategory>> {
+    private fun groupTransactionsByDate(list: List<TransactionWithCategory>, symbol: String): List<TransactionDateGroup> {
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val yesterday = today.minusDays(1)
 
-        return list.groupBy { item ->
+        val groups = list.groupBy { item ->
             val itemDate = java.time.Instant.ofEpochMilli(item.transaction.dateTimestamp)
                 .atZone(zone)
                 .toLocalDate()
@@ -263,5 +282,26 @@ class TimelineViewModel(
                 else -> itemDate.format(FULL_HEADER_FORMAT)
             }
         }
+
+        return groups.map { (header, items) ->
+            val dayTotal = items.sumOf {
+                if (it.transaction.type == TransactionType.INCOME) it.transaction.amount else -it.transaction.amount
+            }
+            val formatted = IndianCurrencyFormatter.formatInr(Math.abs(dayTotal), symbol)
+            val prefix = if (dayTotal >= 0) "+$formatted" else "-$formatted"
+            TransactionDateGroup(
+                dateHeader = header,
+                items = items,
+                dayTotalFormatted = prefix,
+                isPositive = dayTotal >= 0
+            )
+        }
     }
 }
+
+data class TransactionDateGroup(
+    val dateHeader: String,
+    val items: List<TransactionWithCategory>,
+    val dayTotalFormatted: String,
+    val isPositive: Boolean
+)

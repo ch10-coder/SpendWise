@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.spendwise.app.model.ThemeMode
 import com.spendwise.app.ui.screens.main.MainScreen
 import com.spendwise.app.ui.theme.SpendWiseTheme
 import kotlinx.coroutines.launch
@@ -30,15 +29,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeMode by repository.themeMode.collectAsStateWithLifecycle(initialValue = repository.initialThemeMode)
-            val themePalette by repository.themePalette.collectAsStateWithLifecycle(initialValue = repository.initialThemePalette)
-            val isAmoledBlack by repository.isAmoledBlack.collectAsStateWithLifecycle(initialValue = repository.initialIsAmoledBlack)
-            val isDynamicColor by repository.isDynamicColor.collectAsStateWithLifecycle(initialValue = repository.initialIsDynamicColor)
 
             SpendWiseTheme(
-                themeMode = themeMode,
-                themePalette = themePalette,
-                isAmoledBlack = isAmoledBlack,
-                dynamicColor = isDynamicColor
+                themeMode = themeMode
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     MainScreen(repository = repository)

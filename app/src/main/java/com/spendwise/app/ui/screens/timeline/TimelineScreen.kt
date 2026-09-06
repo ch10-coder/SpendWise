@@ -1,6 +1,7 @@
 package com.spendwise.app.ui.screens.timeline
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -35,7 +36,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
 import com.spendwise.app.ui.components.AddEditTransactionSheet
@@ -53,10 +54,9 @@ import com.spendwise.app.ui.components.DateRangeSelector
 import com.spendwise.app.ui.components.EmptyState
 import com.spendwise.app.ui.components.SummaryCard
 import com.spendwise.app.ui.components.TransactionItem
-import com.spendwise.app.ui.theme.GoogleGreen
-import com.spendwise.app.ui.theme.GoogleGreenContainer
-import com.spendwise.app.ui.theme.GoogleRed
-import com.spendwise.app.ui.theme.GoogleRedContainer
+import com.spendwise.app.ui.theme.InflowGreen
+import com.spendwise.app.ui.theme.OutflowRed
+import com.spendwise.app.util.IndianCurrencyFormatter
 import com.spendwise.app.viewmodel.TimelineViewModel
 import kotlinx.coroutines.launch
 
@@ -67,18 +67,18 @@ fun TimelineScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null
 ) {
-    val currencySymbol by viewModel.currencySymbol.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val accounts by viewModel.accounts.collectAsState()
-    val tags by viewModel.tags.collectAsState()
-    val summary by viewModel.summary.collectAsState()
-    val groupedTransactions by viewModel.groupedTransactions.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val selectedTypeFilter by viewModel.selectedTypeFilter.collectAsState()
-    val isBalanceHidden by viewModel.isBalanceHidden.collectAsState()
-    val selectedDateRange by viewModel.selectedDateRange.collectAsState()
-    val customStartDate by viewModel.customStartDate.collectAsState()
-    val customEndDate by viewModel.customEndDate.collectAsState()
+    val currencySymbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
+    val tags by viewModel.tags.collectAsStateWithLifecycle()
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
+    val dateGroupedTransactions by viewModel.dateGroupedTransactions.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val selectedTypeFilter by viewModel.selectedTypeFilter.collectAsStateWithLifecycle()
+    val isBalanceHidden by viewModel.isBalanceHidden.collectAsStateWithLifecycle()
+    val selectedDateRange by viewModel.selectedDateRange.collectAsStateWithLifecycle()
+    val customStartDate by viewModel.customStartDate.collectAsStateWithLifecycle()
+    val customEndDate by viewModel.customEndDate.collectAsStateWithLifecycle()
 
     val accountMap = remember(accounts) { accounts.associateBy { it.id } }
     val scope = rememberCoroutineScope()
@@ -207,8 +207,8 @@ fun TimelineScreen(
                                 label = { Text("Expenses") },
                                 shape = RoundedCornerShape(20.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = GoogleRedContainer,
-                                    selectedLabelColor = GoogleRed
+                                    selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             )
                         }
@@ -223,8 +223,8 @@ fun TimelineScreen(
                                 label = { Text("Income") },
                                 shape = RoundedCornerShape(20.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = GoogleGreenContainer,
-                                    selectedLabelColor = GoogleGreen
+                                    selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                             )
                         }
@@ -233,7 +233,7 @@ fun TimelineScreen(
             }
 
             // Empty State or Grouped Transactions
-            if (groupedTransactions.isEmpty()) {
+            if (dateGroupedTransactions.isEmpty()) {
                 item(key = "empty_state", contentType = "empty") {
                     EmptyState(
                         title = "No Transactions Found",
@@ -255,9 +255,9 @@ fun TimelineScreen(
                     )
                 }
             } else {
-                // Grouped Transactions List
-                groupedTransactions.forEach { (dateHeader, items) ->
-                    item(key = "header_$dateHeader", contentType = "date_header") {
+                // Grouped Transactions List using pre-aggregated day totals (120 FPS buttery smooth)
+                dateGroupedTransactions.forEach { group ->
+                    item(key = "header_${group.dateHeader}", contentType = "date_header") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -266,29 +266,20 @@ fun TimelineScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = dateHeader,
+                                text = group.dateHeader,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
-                            val dayTotal = remember(items) {
-                                items.sumOf {
-                                    if (it.transaction.type == TransactionType.INCOME) it.transaction.amount else -it.transaction.amount
-                                }
-                            }
-                            val formattedDayTotal = remember(dayTotal) {
-                                String.format(java.util.Locale.US, "%,.2f", dayTotal)
-                            }
-                            val dayPrefix = if (dayTotal >= 0) "+$currencySymbol" else "-$currencySymbol"
-                            val dayColor = if (dayTotal >= 0) GoogleGreen else GoogleRed
+                            val dayColor = if (group.isPositive) InflowGreen else OutflowRed
 
                             Surface(
                                 color = dayColor.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text(
-                                    text = "$dayPrefix${formattedDayTotal.replace("-", "")}",
+                                    text = group.dayTotalFormatted,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = dayColor,
@@ -299,7 +290,7 @@ fun TimelineScreen(
                     }
 
                     items(
-                        items = items,
+                        items = group.items,
                         key = { it.transaction.id },
                         contentType = { "transaction_item" }
                     ) { item ->
@@ -320,11 +311,47 @@ fun TimelineScreen(
                         )
                     }
                 }
+
+                // Centered "Made with ❤️ in India • SpendWise Bharat" badge at the bottom of the list
+                item(key = "bharat_footer_badge", contentType = "footer") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 24.dp, bottom = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "🇮🇳",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                                Text(
+                                    text = "Made with ❤️ in India • SpendWise Bharat",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    // Deletion Confirmation Dialog (Google Material 3 Styled)
+    // Deletion Confirmation Dialog (Material 3 Styled)
     if (pendingDeleteTransaction != null) {
         val txToDelete = pendingDeleteTransaction!!
         AlertDialog(
@@ -333,7 +360,7 @@ fun TimelineScreen(
             title = { Text("Delete Transaction", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "Are you sure you want to delete \"${txToDelete.title}\" (${currencySymbol}${String.format(java.util.Locale.US, "%,.2f", txToDelete.amount)})?",
+                    "Are you sure you want to delete \"${txToDelete.title}\" (${IndianCurrencyFormatter.formatInr(txToDelete.amount, currencySymbol)})?",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },

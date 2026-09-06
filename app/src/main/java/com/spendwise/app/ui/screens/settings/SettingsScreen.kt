@@ -1,5 +1,6 @@
 package com.spendwise.app.ui.screens.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Security
@@ -30,15 +32,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,35 +48,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.InvertColors
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spendwise.app.model.CurrencyOption
 import com.spendwise.app.model.ThemeMode
-import com.spendwise.app.model.ThemePalette
-import com.spendwise.app.ui.components.CategoryIconHelper
-import com.spendwise.app.ui.theme.GoogleGreen
+import com.spendwise.app.ui.theme.BharatBlue
+import com.spendwise.app.ui.theme.InflowGreen
+import com.spendwise.app.ui.theme.SaffronPulse
 import com.spendwise.app.viewmodel.SettingsViewModel
-import android.os.Build
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val currencyCode by viewModel.currentCurrencyCode.collectAsState()
-    val currencySymbol by viewModel.currentCurrencySymbol.collectAsState()
-    val themeMode by viewModel.currentThemeMode.collectAsState()
-    val themePalette by viewModel.currentThemePalette.collectAsState()
-    val isAmoledBlack by viewModel.isAmoledBlack.collectAsState()
-    val isDynamicColor by viewModel.isDynamicColor.collectAsState()
+    val currencyCode by viewModel.currentCurrencyCode.collectAsStateWithLifecycle()
+    val currencySymbol by viewModel.currentCurrencySymbol.collectAsStateWithLifecycle()
+    val themeMode by viewModel.currentThemeMode.collectAsStateWithLifecycle()
+    val isAppLockEnabled by viewModel.isAppLockEnabled.collectAsStateWithLifecycle()
 
     var showCurrencyDialog by remember { mutableStateOf(false) }
+
+    val cardBorder = BorderStroke(
+        1.dp,
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+    )
 
     LazyColumn(
         modifier = modifier
@@ -102,14 +102,7 @@ fun SettingsScreen(
                     .clickable { showCurrencyDialog = true },
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    )
-                ),
+                border = cardBorder,
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -137,13 +130,13 @@ fun SettingsScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Currency",
+                            text = "Primary Currency",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "$currencyCode ($currencySymbol)",
+                            text = "$currencyCode ($currencySymbol) • Indian Rupee",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -176,14 +169,7 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    )
-                ),
+                border = cardBorder,
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
@@ -257,134 +243,24 @@ fun SettingsScreen(
             }
         }
 
-        // Color Palette Setting Card
+        // Security & Privacy Group
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    )
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Palette,
-                                contentDescription = "Color Theme",
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column {
-                            Text(
-                                text = "Color Palette",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = themePalette.displayName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ThemePalette.entries.forEach { palette ->
-                            val isSelected = themePalette == palette
-                            val paletteColor = CategoryIconHelper.parseColor(palette.primaryColorHex)
-
-                            Surface(
-                                onClick = { viewModel.selectThemePalette(palette) },
-                                shape = RoundedCornerShape(16.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(26.dp)
-                                                .clip(CircleShape)
-                                                .background(paletteColor)
-                                        )
-                                        Spacer(modifier = Modifier.width(14.dp))
-                                        Column {
-                                            Text(
-                                                text = palette.displayName,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Text(
-                                                text = palette.description,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            Text(
+                text = "Security & Privacy",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp)
+            )
         }
 
-        // AMOLED Pure Black Toggle
+        // App Lock Toggle Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    )
-                ),
+                border = cardBorder,
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -402,13 +278,13 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF000000).copy(alpha = 0.15f)),
+                                .background(SaffronPulse.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.InvertColors,
-                                contentDescription = "AMOLED",
-                                tint = MaterialTheme.colorScheme.onSurface,
+                                imageVector = Icons.Default.Fingerprint,
+                                contentDescription = "Biometric Lock",
+                                tint = SaffronPulse,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -417,13 +293,13 @@ fun SettingsScreen(
 
                         Column {
                             Text(
-                                text = "AMOLED Pure Black",
+                                text = "Biometric App Lock",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Pure #000000 dark mode for battery saving",
+                                text = "Require fingerprint or PIN to open app",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -431,8 +307,8 @@ fun SettingsScreen(
                     }
 
                     Switch(
-                        checked = isAmoledBlack,
-                        onCheckedChange = { viewModel.toggleAmoledBlack(it) },
+                        checked = isAppLockEnabled,
+                        onCheckedChange = { viewModel.toggleAppLock(it) },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.primary,
                             checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
@@ -442,93 +318,13 @@ fun SettingsScreen(
             }
         }
 
-        // Material You Dynamic Color Toggle (Android 12+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                            )
-                        )
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Palette,
-                                    contentDescription = "Dynamic Color",
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column {
-                                Text(
-                                    text = "Material You Dynamic Color",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Match theme to phone wallpaper colors",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Switch(
-                            checked = isDynamicColor,
-                            onCheckedChange = { viewModel.toggleDynamicColor(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
-        // Privacy & Security Info Card
+        // 100% Offline & Private Info Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    )
-                ),
+                border = cardBorder,
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -541,13 +337,13 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(GoogleGreen.copy(alpha = 0.12f)),
+                            .background(InflowGreen.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Security,
                             contentDescription = "Privacy",
-                            tint = GoogleGreen,
+                            tint = InflowGreen,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -562,7 +358,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "All data stays securely on your device.",
+                            text = "All data is securely stored locally on your device. Zero cloud tracking.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -571,20 +367,13 @@ fun SettingsScreen(
             }
         }
 
-        // App Version Card
+        // SpendWise Bharat Branding Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder(enabled = true).copy(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    )
-                ),
+                border = cardBorder,
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -600,11 +389,9 @@ fun SettingsScreen(
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "About",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp)
+                        Text(
+                            text = "🇮🇳",
+                            style = MaterialTheme.typography.titleMedium
                         )
                     }
 
@@ -612,13 +399,13 @@ fun SettingsScreen(
 
                     Column {
                         Text(
-                            text = "SpendWise Android",
+                            text = "SpendWise Bharat Edition",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Version 1.0.0 • Google Material 3 Design • Jetpack Compose",
+                            text = "Version 2.0.0 • Made with ❤️ in India • 120 FPS Fast",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

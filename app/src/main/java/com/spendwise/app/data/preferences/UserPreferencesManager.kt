@@ -114,6 +114,10 @@ class UserPreferencesManager(private val context: Context) {
             preferences[PreferencesKeys.DAILY_REMINDER_TIME]
         }
 
+    suspend fun setCurrency(currencyOption: com.spendwise.app.model.CurrencyOption) {
+        setCurrency(currencyOption.code, currencyOption.symbol)
+    }
+
     suspend fun setCurrency(code: String, symbol: String) {
         sharedPrefs.edit()
             .putString("cached_currency_code", code)

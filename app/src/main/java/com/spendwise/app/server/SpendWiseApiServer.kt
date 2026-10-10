@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -21,9 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Lightweight Zero-Dependency Embedded HTTP API server running on localhost:8080.
- * Implemented using standard java.net.ServerSocket compatible across all Android runtimes.
- * Allows AI agents and local Termux scripts to query summary, transactions, categories,
- * accounts, and insert new transactions directly into SpendWise.
+ * Synchronous client handling with runBlocking for Room queries to prevent premature socket close.
  */
 class SpendWiseApiServer(
     private val repository: SpendWiseRepository,
@@ -107,7 +106,7 @@ class SpendWiseApiServer(
                     ""
                 }
 
-                // Route handling
+                // Route handling synchronously so socket stays open until response is sent
                 when {
                     path == "/api/status" && method == "GET" -> {
                         val res = JSONObject().apply {
@@ -120,159 +119,159 @@ class SpendWiseApiServer(
                     }
 
                     path == "/api/summary" && method == "GET" -> {
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val now = LocalDate.now()
-                                val summary = repository.getMonthlySummary(now.year, now.monthValue).first()
-                                val res = JSONObject().apply {
-                                    put("status", "ok")
-                                    put("totalIncome", summary.totalIncome)
-                                    put("totalExpense", summary.totalExpense)
-                                    put("netBalance", summary.netBalance)
-                                }
-                                sendJsonResponse(output, 200, res.toString())
-                            } catch (e: Exception) {
-                                sendError(output, 500, e.message ?: "Failed to get summary")
+                        try {
+                            val now = LocalDate.now()
+                            val summary = runBlocking(Dispatchers.IO) {
+                                repository.getMonthlySummary(now.year, now.monthValue).first()
                             }
+                            val res = JSONObject().apply {
+                                put("status", "ok")
+                                put("totalIncome", summary.totalIncome)
+                                put("totalExpense", summary.totalExpense)
+                                put("netBalance", summary.netBalance)
+                            }
+                            sendJsonResponse(output, 200, res.toString())
+                        } catch (e: Exception) {
+                            sendError(output, 500, e.message ?: "Failed to get summary")
                         }
                     }
 
                     path == "/api/categories" && method == "GET" -> {
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val categories = repository.getAllCategories().first()
-                                val array = JSONArray()
-                                for (cat in categories) {
-                                    array.put(JSONObject().apply {
-                                        put("id", cat.id)
-                                        put("name", cat.name)
-                                        put("type", cat.type.name)
-                                        put("iconName", cat.iconName)
-                                        put("colorHex", cat.colorHex)
-                                    })
-                                }
-                                val res = JSONObject().apply {
-                                    put("status", "ok")
-                                    put("count", categories.size)
-                                    put("categories", array)
-                                }
-                                sendJsonResponse(output, 200, res.toString())
-                            } catch (e: Exception) {
-                                sendError(output, 500, e.message ?: "Failed to get categories")
+                        try {
+                            val categories = runBlocking(Dispatchers.IO) {
+                                repository.getAllCategories().first()
                             }
+                            val array = JSONArray()
+                            for (cat in categories) {
+                                array.put(JSONObject().apply {
+                                    put("id", cat.id)
+                                    put("name", cat.name)
+                                    put("type", cat.type.name)
+                                    put("iconName", cat.iconName)
+                                    put("colorHex", cat.colorHex)
+                                })
+                            }
+                            val res = JSONObject().apply {
+                                put("status", "ok")
+                                put("count", categories.size)
+                                put("categories", array)
+                            }
+                            sendJsonResponse(output, 200, res.toString())
+                        } catch (e: Exception) {
+                            sendError(output, 500, e.message ?: "Failed to get categories")
                         }
                     }
 
                     path == "/api/accounts" && method == "GET" -> {
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val accountsWithBalance = repository.getAccountsWithBalance().first()
-                                val array = JSONArray()
-                                for (acc in accountsWithBalance) {
-                                    array.put(JSONObject().apply {
-                                        put("id", acc.account.id)
-                                        put("name", acc.account.name)
-                                        put("type", acc.account.type.name)
-                                        put("balance", acc.calculatedBalance)
-                                        put("isDefault", acc.account.isDefault)
-                                    })
-                                }
-                                val res = JSONObject().apply {
-                                    put("status", "ok")
-                                    put("count", accountsWithBalance.size)
-                                    put("accounts", array)
-                                }
-                                sendJsonResponse(output, 200, res.toString())
-                            } catch (e: Exception) {
-                                sendError(output, 500, e.message ?: "Failed to get accounts")
+                        try {
+                            val accountsWithBalance = runBlocking(Dispatchers.IO) {
+                                repository.getAccountsWithBalance().first()
                             }
+                            val array = JSONArray()
+                            for (acc in accountsWithBalance) {
+                                array.put(JSONObject().apply {
+                                    put("id", acc.account.id)
+                                    put("name", acc.account.name)
+                                    put("type", acc.account.type.name)
+                                    put("balance", acc.calculatedBalance)
+                                    put("isDefault", acc.account.isDefault)
+                                })
+                            }
+                            val res = JSONObject().apply {
+                                put("status", "ok")
+                                put("count", accountsWithBalance.size)
+                                put("accounts", array)
+                            }
+                            sendJsonResponse(output, 200, res.toString())
+                        } catch (e: Exception) {
+                            sendError(output, 500, e.message ?: "Failed to get accounts")
                         }
                     }
 
                     path == "/api/transactions" && method == "GET" -> {
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val items = repository.getAllTransactionsWithCategory().first()
-                                val array = JSONArray()
-                                for (item in items) {
-                                    val t = item.transaction
-                                    val c = item.category
-                                    array.put(JSONObject().apply {
-                                        put("id", t.id)
-                                        put("title", t.title)
-                                        put("amount", t.amount)
-                                        put("type", t.type.name)
-                                        put("categoryId", t.categoryId)
-                                        put("categoryName", c?.name)
-                                        put("accountId", t.accountId)
-                                        put("toAccountId", t.toAccountId)
-                                        put("dateTimestamp", t.dateTimestamp)
-                                        put("note", t.note)
-                                    })
-                                }
-                                val res = JSONObject().apply {
-                                    put("status", "ok")
-                                    put("count", items.size)
-                                    put("transactions", array)
-                                }
-                                sendJsonResponse(output, 200, res.toString())
-                            } catch (e: Exception) {
-                                sendError(output, 500, e.message ?: "Failed to get transactions")
+                        try {
+                            val items = runBlocking(Dispatchers.IO) {
+                                repository.getAllTransactionsWithCategory().first()
                             }
+                            val array = JSONArray()
+                            for (item in items) {
+                                val t = item.transaction
+                                val c = item.category
+                                array.put(JSONObject().apply {
+                                    put("id", t.id)
+                                    put("title", t.title)
+                                    put("amount", t.amount)
+                                    put("type", t.type.name)
+                                    put("categoryId", t.categoryId)
+                                    put("categoryName", c?.name)
+                                    put("accountId", t.accountId)
+                                    put("toAccountId", t.toAccountId)
+                                    put("dateTimestamp", t.dateTimestamp)
+                                    put("note", t.note)
+                                })
+                            }
+                            val res = JSONObject().apply {
+                                put("status", "ok")
+                                put("count", items.size)
+                                put("transactions", array)
+                            }
+                            sendJsonResponse(output, 200, res.toString())
+                        } catch (e: Exception) {
+                            sendError(output, 500, e.message ?: "Failed to get transactions")
                         }
                     }
 
                     path == "/api/transactions" && method == "POST" -> {
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val json = JSONObject(body)
-                                val title = json.optString("title", "").trim()
-                                if (title.isEmpty()) {
-                                    sendError(output, 400, "Field 'title' is required")
-                                    return@launch
-                                }
-
-                                val amount = json.optDouble("amount", -1.0)
-                                if (amount <= 0.0) {
-                                    sendError(output, 400, "Field 'amount' must be greater than 0")
-                                    return@launch
-                                }
-
-                                val typeStr = json.optString("type", "EXPENSE").uppercase()
-                                val type = try {
-                                    TransactionType.valueOf(typeStr)
-                                } catch (e: Exception) {
-                                    TransactionType.EXPENSE
-                                }
-
-                                val categoryId = if (json.has("categoryId") && !json.isNull("categoryId")) json.getLong("categoryId") else null
-                                val accountId = if (json.has("accountId") && !json.isNull("accountId")) json.getLong("accountId") else null
-                                val toAccountId = if (json.has("toAccountId") && !json.isNull("toAccountId")) json.getLong("toAccountId") else null
-                                val note = if (json.has("note") && !json.isNull("note")) json.getString("note") else null
-                                val timestamp = if (json.has("dateTimestamp")) json.getLong("dateTimestamp") else System.currentTimeMillis()
-
-                                val newTransaction = TransactionEntity(
-                                    title = title,
-                                    amount = amount,
-                                    type = type,
-                                    categoryId = categoryId,
-                                    accountId = accountId,
-                                    toAccountId = toAccountId,
-                                    note = note,
-                                    dateTimestamp = timestamp
-                                )
-
-                                val id = repository.insertTransaction(newTransaction)
-
-                                val res = JSONObject().apply {
-                                    put("status", "ok")
-                                    put("message", "Transaction created successfully")
-                                    put("id", id)
-                                }
-                                sendJsonResponse(output, 201, res.toString())
-                            } catch (e: Exception) {
-                                sendError(output, 400, "Invalid JSON payload: ${e.message}")
+                        try {
+                            val json = JSONObject(body)
+                            val title = json.optString("title", "").trim()
+                            if (title.isEmpty()) {
+                                sendError(output, 400, "Field 'title' is required")
+                                return
                             }
+
+                            val amount = json.optDouble("amount", -1.0)
+                            if (amount <= 0.0) {
+                                sendError(output, 400, "Field 'amount' must be greater than 0")
+                                return
+                            }
+
+                            val typeStr = json.optString("type", "EXPENSE").uppercase()
+                            val type = try {
+                                TransactionType.valueOf(typeStr)
+                            } catch (e: Exception) {
+                                TransactionType.EXPENSE
+                            }
+
+                            val categoryId = if (json.has("categoryId") && !json.isNull("categoryId")) json.getLong("categoryId") else null
+                            val accountId = if (json.has("accountId") && !json.isNull("accountId")) json.getLong("accountId") else null
+                            val toAccountId = if (json.has("toAccountId") && !json.isNull("toAccountId")) json.getLong("toAccountId") else null
+                            val note = if (json.has("note") && !json.isNull("note")) json.getString("note") else null
+                            val timestamp = if (json.has("dateTimestamp")) json.getLong("dateTimestamp") else System.currentTimeMillis()
+
+                            val newTransaction = TransactionEntity(
+                                title = title,
+                                amount = amount,
+                                type = type,
+                                categoryId = categoryId,
+                                accountId = accountId,
+                                toAccountId = toAccountId,
+                                note = note,
+                                dateTimestamp = timestamp
+                            )
+
+                            val id = runBlocking(Dispatchers.IO) {
+                                repository.insertTransaction(newTransaction)
+                            }
+
+                            val res = JSONObject().apply {
+                                put("status", "ok")
+                                put("message", "Transaction created successfully")
+                                put("id", id)
+                            }
+                            sendJsonResponse(output, 201, res.toString())
+                        } catch (e: Exception) {
+                            sendError(output, 400, "Invalid JSON payload: ${e.message}")
                         }
                     }
 

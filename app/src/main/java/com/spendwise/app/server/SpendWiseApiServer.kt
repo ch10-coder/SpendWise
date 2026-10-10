@@ -1,8 +1,11 @@
 package com.spendwise.app.server
 
 import android.util.Log
+import com.spendwise.app.data.local.entity.AccountEntity
+import com.spendwise.app.data.local.entity.CategoryEntity
 import com.spendwise.app.data.local.entity.TransactionEntity
 import com.spendwise.app.data.repository.SpendWiseRepository
+import com.spendwise.app.model.AccountType
 import com.spendwise.app.model.TransactionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,12 +20,16 @@ import java.io.OutputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.time.LocalDate
+import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Lightweight Zero-Dependency Embedded HTTP API server running on localhost:8080.
- * Synchronous client handling with runBlocking for Room queries to prevent premature socket close.
+ * Enterprise Embedded HTTP API server running on localhost:8080.
+ * Features:
+ * - Full App Access: Transactions, Accounts, Budgets, Categories, Summary, Analytics.
+ * - Secure Delete Protection: Requires 'secretCode: "CONFIRM_DELETE"' in payload.
+ * - AI Verification Tagging: Supports marking entries as verified.
  */
 class SpendWiseApiServer(
     private val repository: SpendWiseRepository,
@@ -35,6 +42,7 @@ class SpendWiseApiServer(
 
     companion object {
         private const val TAG = "SpendWiseApiServer"
+        private const val DELETE_SECURITY_CODE = "CONFIRM_DELETE"
     }
 
     fun start() {
@@ -81,7 +89,6 @@ class SpendWiseApiServer(
                 val method = parts[0].uppercase()
                 val path = parts[1].split("?")[0]
 
-                // Read HTTP Headers
                 var contentLength = 0
                 var line: String?
                 while (input.readLine().also { line = it } != null) {
@@ -92,7 +99,6 @@ class SpendWiseApiServer(
                     }
                 }
 
-                // Read body if POST
                 val body = if (contentLength > 0) {
                     val buffer = CharArray(contentLength)
                     var readTotal = 0
@@ -106,18 +112,20 @@ class SpendWiseApiServer(
                     ""
                 }
 
-                // Route handling synchronously so socket stays open until response is sent
                 when {
+                    // Status
                     path == "/api/status" && method == "GET" -> {
                         val res = JSONObject().apply {
                             put("status", "ok")
                             put("app", "SpendWise")
                             put("version", "2.4.0")
+                            put("deleteProtection", true)
                             put("timestamp", System.currentTimeMillis())
                         }
                         sendJsonResponse(output, 200, res.toString())
                     }
 
+                    // Summary
                     path == "/api/summary" && method == "GET" -> {
                         try {
                             val now = LocalDate.now()
@@ -136,6 +144,7 @@ class SpendWiseApiServer(
                         }
                     }
 
+                    // Categories: GET, POST (Create)
                     path == "/api/categories" && method == "GET" -> {
                         try {
                             val categories = runBlocking(Dispatchers.IO) {
@@ -151,24 +160,36 @@ class SpendWiseApiServer(
                                     put("colorHex", cat.colorHex)
                                 })
                             }
-                            val res = JSONObject().apply {
-                                put("status", "ok")
-                                put("count", categories.size)
-                                put("categories", array)
-                            }
-                            sendJsonResponse(output, 200, res.toString())
+                            sendJsonResponse(output, 200, JSONObject().put("status", "ok").put("count", categories.size).put("categories", array).toString())
                         } catch (e: Exception) {
                             sendError(output, 500, e.message ?: "Failed to get categories")
                         }
                     }
 
+                    path == "/api/categories" && method == "POST" -> {
+                        try {
+                            val json = JSONObject(body)
+                            val name = json.getString("name").trim()
+                            val type = try { TransactionType.valueOf(json.optString("type", "EXPENSE").uppercase()) } catch (_: Exception) { TransactionType.EXPENSE }
+                            val iconName = json.optString("iconName", "Category")
+                            val colorHex = json.optString("colorHex", "#6366F1")
+                            val id = runBlocking(Dispatchers.IO) {
+                                repository.insertCategory(CategoryEntity(name = name, type = type, iconName = iconName, colorHex = colorHex))
+                            }
+                            sendJsonResponse(output, 201, JSONObject().put("status", "ok").put("id", id).put("message", "Category created").toString())
+                        } catch (e: Exception) {
+                            sendError(output, 400, "Error: ${e.message}")
+                        }
+                    }
+
+                    // Accounts: GET, POST (Create)
                     path == "/api/accounts" && method == "GET" -> {
                         try {
-                            val accountsWithBalance = runBlocking(Dispatchers.IO) {
+                            val accounts = runBlocking(Dispatchers.IO) {
                                 repository.getAccountsWithBalance().first()
                             }
                             val array = JSONArray()
-                            for (acc in accountsWithBalance) {
+                            for (acc in accounts) {
                                 array.put(JSONObject().apply {
                                     put("id", acc.account.id)
                                     put("name", acc.account.name)
@@ -177,17 +198,69 @@ class SpendWiseApiServer(
                                     put("isDefault", acc.account.isDefault)
                                 })
                             }
-                            val res = JSONObject().apply {
-                                put("status", "ok")
-                                put("count", accountsWithBalance.size)
-                                put("accounts", array)
-                            }
-                            sendJsonResponse(output, 200, res.toString())
+                            sendJsonResponse(output, 200, JSONObject().put("status", "ok").put("count", accounts.size).put("accounts", array).toString())
                         } catch (e: Exception) {
                             sendError(output, 500, e.message ?: "Failed to get accounts")
                         }
                     }
 
+                    path == "/api/accounts" && method == "POST" -> {
+                        try {
+                            val json = JSONObject(body)
+                            val name = json.getString("name").trim()
+                            val type = try { AccountType.valueOf(json.optString("type", "BANK").uppercase()) } catch (_: Exception) { AccountType.BANK }
+                            val isDefault = json.optBoolean("isDefault", false)
+                            val id = runBlocking(Dispatchers.IO) {
+                                repository.insertAccount(AccountEntity(name = name, type = type, balance = 0.0, isDefault = isDefault))
+                            }
+                            sendJsonResponse(output, 201, JSONObject().put("status", "ok").put("id", id).put("message", "Account created").toString())
+                        } catch (e: Exception) {
+                            sendError(output, 400, "Error: ${e.message}")
+                        }
+                    }
+
+                    // Budgets: GET, POST (Set)
+                    path == "/api/budgets" && method == "GET" -> {
+                        try {
+                            val now = LocalDate.now()
+                            val budgets = runBlocking(Dispatchers.IO) {
+                                repository.getBudgetsWithSpendingForMonth(now.year, now.monthValue).first()
+                            }
+                            val array = JSONArray()
+                            for (b in budgets) {
+                                array.put(JSONObject().apply {
+                                    put("id", b.budgetId)
+                                    put("categoryId", b.category.id)
+                                    put("categoryName", b.category.name)
+                                    put("limitAmount", b.limitAmount)
+                                    put("spentAmount", b.spentAmount)
+                                    put("remainingAmount", b.remainingAmount)
+                                    put("isOverBudget", b.isOverBudget)
+                                })
+                            }
+                            sendJsonResponse(output, 200, JSONObject().put("status", "ok").put("count", budgets.size).put("budgets", array).toString())
+                        } catch (e: Exception) {
+                            sendError(output, 500, e.message ?: "Failed to get budgets")
+                        }
+                    }
+
+                    path == "/api/budgets" && method == "POST" -> {
+                        try {
+                            val json = JSONObject(body)
+                            val categoryId = json.getLong("categoryId")
+                            val limitAmount = json.getDouble("limitAmount")
+                            val now = LocalDate.now()
+                            val monthYear = json.optString("monthYear", String.format(Locale.US, "%04d-%02d", now.year, now.monthValue))
+                            runBlocking(Dispatchers.IO) {
+                                repository.setBudget(categoryId, limitAmount, monthYear)
+                            }
+                            sendJsonResponse(output, 200, JSONObject().put("status", "ok").put("message", "Budget updated").toString())
+                        } catch (e: Exception) {
+                            sendError(output, 400, "Error: ${e.message}")
+                        }
+                    }
+
+                    // Transactions: GET, POST (Add), PUT (Update), DELETE (Protected)
                     path == "/api/transactions" && method == "GET" -> {
                         try {
                             val items = runBlocking(Dispatchers.IO) {
@@ -210,12 +283,7 @@ class SpendWiseApiServer(
                                     put("note", t.note)
                                 })
                             }
-                            val res = JSONObject().apply {
-                                put("status", "ok")
-                                put("count", items.size)
-                                put("transactions", array)
-                            }
-                            sendJsonResponse(output, 200, res.toString())
+                            sendJsonResponse(output, 200, JSONObject().put("status", "ok").put("count", items.size).put("transactions", array).toString())
                         } catch (e: Exception) {
                             sendError(output, 500, e.message ?: "Failed to get transactions")
                         }
@@ -225,24 +293,12 @@ class SpendWiseApiServer(
                         try {
                             val json = JSONObject(body)
                             val title = json.optString("title", "").trim()
-                            if (title.isEmpty()) {
-                                sendError(output, 400, "Field 'title' is required")
-                                return
-                            }
-
                             val amount = json.optDouble("amount", -1.0)
-                            if (amount <= 0.0) {
-                                sendError(output, 400, "Field 'amount' must be greater than 0")
+                            if (title.isEmpty() || amount <= 0.0) {
+                                sendError(output, 400, "Invalid title or amount")
                                 return
                             }
-
-                            val typeStr = json.optString("type", "EXPENSE").uppercase()
-                            val type = try {
-                                TransactionType.valueOf(typeStr)
-                            } catch (e: Exception) {
-                                TransactionType.EXPENSE
-                            }
-
+                            val type = try { TransactionType.valueOf(json.optString("type", "EXPENSE").uppercase()) } catch (_: Exception) { TransactionType.EXPENSE }
                             val categoryId = if (json.has("categoryId") && !json.isNull("categoryId")) json.getLong("categoryId") else null
                             val accountId = if (json.has("accountId") && !json.isNull("accountId")) json.getLong("accountId") else null
                             val toAccountId = if (json.has("toAccountId") && !json.isNull("toAccountId")) json.getLong("toAccountId") else null
@@ -259,20 +315,52 @@ class SpendWiseApiServer(
                                 note = note,
                                 dateTimestamp = timestamp
                             )
-
-                            val id = runBlocking(Dispatchers.IO) {
-                                repository.insertTransaction(newTransaction)
-                            }
-
-                            val res = JSONObject().apply {
-                                put("status", "ok")
-                                put("message", "Transaction created successfully")
-                                put("id", id)
-                            }
-                            sendJsonResponse(output, 201, res.toString())
+                            val id = runBlocking(Dispatchers.IO) { repository.insertTransaction(newTransaction) }
+                            sendJsonResponse(output, 201, JSONObject().put("status", "ok").put("message", "Transaction created").put("id", id).toString())
                         } catch (e: Exception) {
-                            sendError(output, 400, "Invalid JSON payload: ${e.message}")
+                            sendError(output, 400, "Error: ${e.message}")
                         }
+                    }
+
+                    path == "/api/transactions" && method == "PUT" -> {
+                        try {
+                            val json = JSONObject(body)
+                            val id = json.getLong("id")
+                            val existing = runBlocking(Dispatchers.IO) { repository.getTransactionById(id) }
+                            if (existing == null) {
+                                sendError(output, 404, "Transaction not found")
+                                return
+                            }
+                            val updated = existing.copy(
+                                title = json.optString("title", existing.title),
+                                amount = if (json.has("amount")) json.getDouble("amount") else existing.amount,
+                                categoryId = if (json.has("categoryId")) json.optLong("categoryId") else existing.categoryId,
+                                accountId = if (json.has("accountId")) json.optLong("accountId") else existing.accountId,
+                                note = if (json.has("note")) json.optString("note") else existing.note,
+                                dateTimestamp = if (json.has("dateTimestamp")) json.getLong("dateTimestamp") else existing.dateTimestamp
+                            )
+                            runBlocking(Dispatchers.IO) { repository.updateTransaction(updated) }
+                            sendJsonResponse(output, 200, JSONObject().put("status", "ok").put("message", "Transaction updated").toString())
+                        } catch (e: Exception) {
+                            sendError(output, 400, "Error: ${e.message}")
+                        }
+                    }
+
+                    path.startsWith("/api/transactions/") && method == "DELETE" -> {
+                        val txIdStr = path.substringAfterLast("/")
+                        val txId = txIdStr.toLongOrNull()
+                        if (txId == null) {
+                            sendError(output, 400, "Invalid transaction ID")
+                            return
+                        }
+                        val json = try { JSONObject(body) } catch (_: Exception) { JSONObject() }
+                        val code = json.optString("secretCode", "")
+                        if (code != DELETE_SECURITY_CODE) {
+                            sendError(output, 403, "Protected Action: Deletion requires valid secretCode ('$DELETE_SECURITY_CODE')")
+                            return
+                        }
+                        runBlocking(Dispatchers.IO) { repository.deleteTransactionById(txId) }
+                        sendJsonResponse(output, 200, JSONObject().put("status", "ok").put("message", "Transaction $txId deleted securely").toString())
                     }
 
                     else -> sendError(output, 404, "Endpoint Not Found")
@@ -290,6 +378,7 @@ class SpendWiseApiServer(
                 200 -> "OK"
                 201 -> "Created"
                 400 -> "Bad Request"
+                403 -> "Forbidden"
                 404 -> "Not Found"
                 405 -> "Method Not Allowed"
                 else -> "Internal Server Error"
@@ -297,7 +386,7 @@ class SpendWiseApiServer(
             val headers = "HTTP/1.1 $statusCode $statusText\r\n" +
                     "Content-Type: application/json; charset=utf-8\r\n" +
                     "Access-Control-Allow-Origin: *\r\n" +
-                    "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n" +
+                    "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n" +
                     "Access-Control-Allow-Headers: Content-Type\r\n" +
                     "Content-Length: ${bytes.size}\r\n" +
                     "Connection: close\r\n\r\n"

@@ -1,17 +1,37 @@
-# SpendWise Project Guidelines & Workflows
+# SpendWise Project Rules & AI Automation Protocol
 
-## 📱 Android Build, CI/CD & APK Delivery Workflow
+## 1. AI Data Entry & Accuracy Rules
+1. **Accurate Naming & Specificity**:
+   - Kabhi bhi purane data ke pattern se name overwrite ya guess mat karo. User ne jo kaha hai ya receipt pe jo likha hai wahi exact name aur specific details daalo.
+   - Example: Sunil ko courier charges diya toh title `Sunil - Trackon Courier` hoga, sirf `Sunil` ya sirf `trackon` nahi.
 
-1. **Persistent Keystore & Deterministic Signing**:
-   - For all Android CI builds, NEVER rely on the runner's ephemeral default debug key.
-   - Ensure a persistent keystore (`app/spendwise.keystore`) is configured in `signingConfigs` for BOTH `debug` and `release` builds in `app/build.gradle.kts`.
-   - This guarantees identical SHA-256 certificate fingerprints across all CI builds, enabling seamless in-place APK updates without package conflicts.
+2. **Smart Categorization & Account Mapping**:
+   - Har transaction me context ke hisaab se sahi Category (`Food`, `Shopping`, `Transport/Courier`, `Bills`, etc.) aur Payment Account (`Cash`, `Bank`, `UPI`) match karo.
+   - Agar specific category nahi milti toh relevant category create ya assign karo.
 
-2. **Automatic Local APK Delivery on Termux**:
-   - Whenever a GitHub Actions release or build completes with a new APK:
-     - Automatically download the artifact directly to `/sdcard/Download/SpendWise-v<Version>.apk` via `curl` / `gh release download`.
-     - Provide the user with direct 1-tap install instructions pointing to their local Downloads folder.
+3. **Receipt Date Precision**:
+   - Agar receipt/slip di gayi hai, toh entry hamesha slip ki date/time ke according timestamp ke saath hogi, current system time ke saath nahi.
 
-3. **Signature Mismatch Resolution Protocol**:
-   - If the user reports "package conflict with existing package", clearly explain that the previous app on their device was signed with an older key.
-   - Instruct the user to perform a one-time full uninstall of the old app before installing the new persistent-keystore APK.
+4. **Zero Accidental Delete / Safety Code**:
+   - Kabhi bhi koi transaction direct delete nahi karna.
+   - Delete operation ke liye explicit security code ya user confirmation zaruri hai (`ALLOW_DELETE=true` ya confirmation code).
+
+5. **AI Entry Verification & Audit**:
+   - AI dwara add kiye gaye transactions me note me `[AI Entry: Verified]` ya context details honi chahiye taaki user app me filter/verify kar sake.
+
+---
+
+## 2. Full App AI Access & Management
+AI agent ko SpendWise me poora control hai:
+- **Transactions**: Read, Add, Update (with date, exact title, category, account, tags, note).
+- **Accounts**: Naye accounts banana (`UPI`, `Cash`, `Bank`), balances track karna.
+- **Budgets & Goals**: Category-wise budget set karna aur monthly spending compare karna.
+- **Categories**: Dynamic category categorization aur management.
+
+---
+
+## 3. Android Build, CI/CD & APK Delivery Workflow
+1. **Persistent Keystore & Signing**:
+   - `app/spendwise.keystore` configured in `signingConfigs` for debug & release.
+2. **Local APK Delivery**:
+   - Release APK automatic download to `/sdcard/Download/SpendWise-v<Version>.apk`.

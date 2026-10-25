@@ -31,7 +31,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     private val csvService: CsvService by lazy {
         CsvService(
             transactionDao = database.transactionDao(),
-            categoryDao = database.categoryDao()
+            categoryDao = database.categoryDao(),
+            accountDao = database.accountDao()
         )
     }
 

@@ -74,31 +74,37 @@ jobs:
     - name: Upload APK Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.4.0-APKs
+        name: SpendWise-v2.5.0-APKs
         path: app/build/outputs/apk/**/*.apk
 
     - name: Upload Google Play AAB Bundle
       uses: actions/upload-artifact@v4
       with:
-        name: SpendWise-v2.4.0-AAB
+        name: SpendWise-v2.5.0-AAB
         path: app/build/outputs/bundle/**/*.aab
 
     - name: Create / Update GitHub Release with APK
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
       with:
-        tag_name: v2.4.0
-        name: "SpendWise v2.4.0 Bharat Edition 🇮🇳 (120 FPS Fast • Light & Dark)"
+        tag_name: v2.5.0
+        name: "SpendWise v2.5.0 Bharat Edition 🇮🇳 (Accounts, Transfers & Real App Lock)"
         body: |
-          ### SpendWise v2.4.0 Bharat Edition 🇮🇳 (Made with ❤️ in India)
+          ### SpendWise v2.5.0 Bharat Edition 🇮🇳 (Made with ❤️ in India)
 
-          #### ⚡ Performance & Polish:
-          - 🚀 **120 FPS Buttery Smooth Scrolling**: Eradicated main-thread blocking (`runBlocking` startup freeze eliminated with 0ms memory cache). Pre-aggregated daily totals in ViewModel on `Dispatchers.Default`.
-          - 🧹 **Zero GC Stutter**: Replaced per-frame gradient shader allocations in `LazyColumn` with static hardware-accelerated borders.
-          - 🇮🇳 **Indian Numbering (Lakhs & Crores)**: High-speed zero-allocation Indian currency formatter (`₹1,48,500.50`).
-          - 🌓 **Strictly Light & Dark Modes**: Removed 7 bloated color palettes; streamlined to Midnight Indigo Dark and Optical Paper Light.
-          - 💳 **Indian Financial Context**: UPI payment accounts (GPay, PhonePe, Paytm), Indian lifestyle categories (Kirana, Chai & Snacks, Auto/Metro, Fastag, SIP / Mutual Funds, Pooja/Festivals).
-          - 🔒 **Biometric App Lock & 100% Offline**: Private local SQLite database, zero tracking, zero cloud dependency.
+          #### ✨ New & Improved
+          - 💳 **Accounts that work**: pick the account on every transaction, set opening balances, edit accounts, choose a default, see your total net worth.
+          - 🔁 **Transfers**: move money between your own accounts (e.g. Bank → Cash) without it counting as spending.
+          - 🏷️ **Tags** can now be added to transactions, and editing a transaction keeps them.
+          - 🔒 **Biometric App Lock** now really locks the app (fingerprint, face or screen lock) and re-locks after 30 seconds in the background.
+          - 🎨 **Fresh look**: new gradient balance card with savings insight and one-tap Expense / Income / Transfer, sticky date headers, consistent dialogs and pickers.
+
+          #### 🛡️ Safety & Fixes
+          - Every delete (accounts, categories, tags, budgets, goals, recurring rules) now asks first; deleted transactions come back exactly with Undo.
+          - Recurring rules no longer duplicate past entries after an edit, keep month-end dates (31st stays the 31st) and skip paused periods.
+          - CSV: notes with line breaks, ₹/Hindi text in Excel, account names, Indian date formats, and no duplicates when re-importing.
+          - Local API now listens only on the phone itself (127.0.0.1) and blocks websites from reaching it.
+          - Analytics and day totals no longer count transfers as expenses; custom date ranges include the full last day.
         files: |
           app/build/outputs/apk/**/*.apk
         draft: false

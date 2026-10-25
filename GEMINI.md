@@ -28,6 +28,13 @@ AI agent ko SpendWise me poora control hai:
 - **Budgets & Goals**: Category-wise budget set karna aur monthly spending compare karna.
 - **Categories**: Dynamic category categorization aur management.
 
+### Local API (sirf phone par: `http://127.0.0.1:8080`)
+- API ab sirf phone ke andar se chalti hai (Termux / on-device agent). Doosre Wi-Fi devices aur browser websites block hain. PC se use karna ho toh `adb forward tcp:8080 tcp:8080`.
+- `GET /api/tags` se tags milte hain; `POST`/`PUT /api/transactions` me `tagIds: [1, 2]` bhej sakte ho.
+- Transfer ke liye `type: "TRANSFER"` ke saath `accountId` (from) aur `toAccountId` (to) dono zaruri hain.
+- `PUT` me kisi field ko `null` bhejoge toh wo clear ho jayega; field na bhejo toh wahi rahega.
+- `POST /api/accounts` me `openingBalance` de sakte ho; `GET /api/accounts` me `balance` live balance hai.
+
 ---
 
 ## 3. Android Build, CI/CD & APK Delivery Workflow

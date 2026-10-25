@@ -1,5 +1,7 @@
 package com.spendwise.app.ui.screens.goals
 
+import com.spendwise.app.util.IndianCurrencyFormatter
+import com.spendwise.app.ui.components.ConfirmDeleteDialog
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -82,6 +84,7 @@ fun SavingsGoalsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var goalToEdit by remember { mutableStateOf<SavingsGoalEntity?>(null) }
     var adjustActionGoal by remember { mutableStateOf<Pair<SavingsGoalEntity, Boolean>?>(null) }
+    var pendingDeleteGoal by remember { mutableStateOf<SavingsGoalEntity?>(null) }
 
     val totalSaved = goals.sumOf { it.currentAmount }
     val totalTarget = goals.sumOf { it.targetAmount }
@@ -191,7 +194,7 @@ fun SavingsGoalsScreen(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    val savedStr = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", totalSaved)}"
+                                    val savedStr = if (isBalanceHidden) "••••••" else "${IndianCurrencyFormatter.formatInr(totalSaved, currencySymbol)}"
                                     Text(
                                         text = savedStr,
                                         style = MaterialTheme.typography.titleMedium,
@@ -205,7 +208,7 @@ fun SavingsGoalsScreen(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    val targetStr = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", totalTarget)}"
+                                    val targetStr = if (isBalanceHidden) "••••••" else "${IndianCurrencyFormatter.formatInr(totalTarget, currencySymbol)}"
                                     Text(
                                         text = targetStr,
                                         style = MaterialTheme.typography.titleMedium,
@@ -227,11 +230,20 @@ fun SavingsGoalsScreen(
                         onDepositClick = { adjustActionGoal = Pair(goal, true) },
                         onWithdrawClick = { adjustActionGoal = Pair(goal, false) },
                         onEditClick = { goalToEdit = goal },
-                        onDeleteClick = { onDeleteGoal(goal) }
+                        onDeleteClick = { pendingDeleteGoal = goal }
                     )
                 }
             }
         }
+    }
+
+    pendingDeleteGoal?.let { goal ->
+        ConfirmDeleteDialog(
+            title = "Delete Goal",
+            message = "Delete the goal \"${goal.name}\" and its saved progress? This cannot be undone.",
+            onConfirm = { onDeleteGoal(goal) },
+            onDismiss = { pendingDeleteGoal = null }
+        )
     }
 
     // Add / Edit Dialog
@@ -431,8 +443,8 @@ fun SavingsGoalItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val currentStr = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", goal.currentAmount)}"
-                val targetStr = if (isBalanceHidden) "••••••" else "$currencySymbol${String.format(Locale.US, "%,.2f", goal.targetAmount)}"
+                val currentStr = if (isBalanceHidden) "••••••" else "${IndianCurrencyFormatter.formatInr(goal.currentAmount, currencySymbol)}"
+                val targetStr = if (isBalanceHidden) "••••••" else "${IndianCurrencyFormatter.formatInr(goal.targetAmount, currencySymbol)}"
 
                 Text(
                     text = "$currentStr of $targetStr",
@@ -730,7 +742,7 @@ fun DepositWithdrawDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Current saved: $currencySymbol${String.format(Locale.US, "%,.2f", goal.currentAmount)}",
+                    text = "Current saved: ${IndianCurrencyFormatter.formatInr(goal.currentAmount, currencySymbol)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

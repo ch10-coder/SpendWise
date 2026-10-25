@@ -1,5 +1,6 @@
 package com.spendwise.app.ui.screens.categories
 
+import com.spendwise.app.ui.components.ConfirmDeleteDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -80,6 +81,7 @@ fun CategoriesScreen(
 
     var showDialog by remember { mutableStateOf(false) }
     var editingCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    var pendingDeleteCategory by remember { mutableStateOf<CategoryEntity?>(null) }
 
     val filteredCategories = allCategories.filter { it.type == selectedType }
 
@@ -214,7 +216,7 @@ fun CategoriesScreen(
 
                         if (!category.isDefault) {
                             IconButton(
-                                onClick = { viewModel.deleteCategory(category) }
+                                onClick = { pendingDeleteCategory = category }
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -227,6 +229,15 @@ fun CategoriesScreen(
                 }
             }
         }
+    }
+
+    pendingDeleteCategory?.let { category ->
+        ConfirmDeleteDialog(
+            title = "Delete Category",
+            message = "Delete \"${category.name}\"? Its transactions will be kept as uncategorized and any budgets for it will be removed.",
+            onConfirm = { viewModel.deleteCategory(category) },
+            onDismiss = { pendingDeleteCategory = null }
+        )
     }
 
     if (showDialog) {

@@ -47,6 +47,12 @@ SpendWise is a personal finance management and expense tracking Android applicat
    - Multi-currency support (USD `$`, EUR `€`, GBP `£`, INR `₹`, JPY `¥`, CAD `CA$`, AUD `AU$`, BRL `R$`, NGN `₦`, PHP `₱`).
    - Theme Mode toggle (System Default, Light, Dark).
 
+8. **Local Automation API**
+   - Embedded JSON API on `http://127.0.0.1:8080` for on-device tools (e.g. Termux or an AI agent on the phone).
+   - Endpoints: `/api/status`, `/api/summary`, `/api/transactions` (GET/POST/PUT, `DELETE /api/transactions/{id}`), `/api/accounts`, `/api/categories`, `/api/budgets`, `/api/tags`.
+   - Listens on the phone only and rejects browser requests, so other devices on the Wi-Fi and websites cannot reach your data. From a computer, use `adb forward tcp:8080 tcp:8080`.
+   - Deletes need the confirmation code in `secretCode`.
+
 ---
 
 ## Tech Stack & Architecture

@@ -13,6 +13,7 @@ import com.spendwise.app.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import java.io.IOException
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_settings")
@@ -96,10 +97,20 @@ class UserPreferencesManager(private val context: Context) {
             preferences[PreferencesKeys.IS_BALANCE_HIDDEN] ?: false
         }
 
+    /** Read synchronously at startup so the lock screen is up before any balance is drawn. */
+    val initialIsAppLockEnabled: Boolean
+        get() = sharedPrefs.getBoolean("cached_app_lock", false)
+
     val isAppLockEnabledFlow: Flow<Boolean> = dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { preferences ->
             preferences[PreferencesKeys.IS_APP_LOCK_ENABLED] ?: false
+        }
+        .onEach { enabled ->
+            // Keeps the startup cache right for users who enabled the lock before it was cached
+            if (sharedPrefs.getBoolean("cached_app_lock", false) != enabled) {
+                sharedPrefs.edit().putBoolean("cached_app_lock", enabled).apply()
+            }
         }
 
     val isAmoledBlackFlow: Flow<Boolean> = dataStore.data
@@ -159,6 +170,7 @@ class UserPreferencesManager(private val context: Context) {
     }
 
     suspend fun setAppLockEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("cached_app_lock", enabled).apply()
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.IS_APP_LOCK_ENABLED] = enabled
         }

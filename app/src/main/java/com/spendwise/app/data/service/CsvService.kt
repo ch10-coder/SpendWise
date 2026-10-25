@@ -1,5 +1,6 @@
 package com.spendwise.app.data.service
 
+import com.spendwise.app.data.local.dao.AccountDao
 import com.spendwise.app.data.local.dao.CategoryDao
 import com.spendwise.app.data.local.dao.TransactionDao
 import com.spendwise.app.data.local.entity.CategoryEntity
@@ -8,42 +9,67 @@ import com.spendwise.app.model.TransactionType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.abs
+
+/** Outcome of a CSV import. */
+data class CsvImportSummary(
+    val imported: Int,
+    val skippedDuplicates: Int,
+    val skippedInvalid: Int
+)
 
 class CsvService(
     private val transactionDao: TransactionDao,
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val accountDao: AccountDao
 ) {
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+    private val exportFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US)
+
+    /** Date-time layouts accepted on import, including common Indian bank statement formats. */
+    private val dateTimeFormats = listOf(
+        "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "dd/MM/yyyy HH:mm:ss", "dd/MM/yyyy HH:mm",
+        "dd-MM-yyyy HH:mm:ss", "dd-MM-yyyy HH:mm"
+    ).map { DateTimeFormatter.ofPattern(it, Locale.US) }
+    private val dateFormats = listOf(
+        "yyyy-MM-dd", "dd/MM/yyyy", "dd-MM-yyyy", "dd MMM yyyy", "dd-MMM-yyyy", "d/M/yyyy"
+    ).map { DateTimeFormatter.ofPattern(it, Locale.US) }
 
     suspend fun exportTransactionsToCsv(outputStream: OutputStream): Result<Int> = withContext(Dispatchers.IO) {
         try {
             val transactionsWithCategory = transactionDao.getAllTransactionsWithCategory().first()
-            OutputStreamWriter(outputStream).use { writer ->
-                // CSV Header
-                writer.write("ID,Date,Title,Type,Amount,Category,Account,Note\n")
+            val accountNames = accountDao.getAllAccounts().first().associate { it.id to it.name }
+            val zone = ZoneId.systemDefault()
+
+            OutputStreamWriter(outputStream, Charsets.UTF_8).use { writer ->
+                // BOM so Excel opens ₹ and Hindi text correctly
+                writer.write("﻿")
+                writer.write("ID,Date,Title,Type,Amount,Category,Account,Note,ToAccount\n")
 
                 for (item in transactionsWithCategory) {
                     val t = item.toTransactionWithCategory()
-                    val dateStr = dateFormat.format(Date(t.transaction.dateTimestamp))
-                    val safeTitle = escapeCsvField(t.transaction.title)
-                    val typeStr = t.transaction.type.name
-                    val amountStr = String.format(Locale.US, "%.2f", t.transaction.amount)
-                    val catName = escapeCsvField(t.category?.name ?: "Uncategorized")
-                    val safeNote = escapeCsvField(t.transaction.note ?: "")
-                    
-                    // We don't have account name trivially mapped here unless we use AccountDao or join.
-                    // For now, write account ID if it exists. (Ideally this would be the name if joined).
-                    val accountStr = t.transaction.accountId?.toString() ?: ""
-
-                    writer.write("${t.transaction.id},\"$dateStr\",\"$safeTitle\",$typeStr,$amountStr,\"$catName\",\"$accountStr\",\"$safeNote\"\n")
+                    val tx = t.transaction
+                    val dateStr = java.time.Instant.ofEpochMilli(tx.dateTimestamp).atZone(zone).format(exportFormat)
+                    val fields = listOf(
+                        tx.id.toString(),
+                        dateStr,
+                        tx.title,
+                        tx.type.name,
+                        String.format(Locale.US, "%.2f", tx.amount),
+                        t.category?.name ?: "Uncategorized",
+                        tx.accountId?.let { accountNames[it] } ?: "",
+                        tx.note ?: "",
+                        tx.toAccountId?.let { accountNames[it] } ?: ""
+                    )
+                    writer.write(fields.joinToString(",") { csvField(it) })
+                    writer.write("\n")
                 }
                 writer.flush()
             }
@@ -53,135 +79,182 @@ class CsvService(
         }
     }
 
-    suspend fun importTransactionsFromCsv(inputStream: InputStream): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun importTransactionsFromCsv(inputStream: InputStream): Result<CsvImportSummary> = withContext(Dispatchers.IO) {
         try {
-            var newTransactionsCount = 0
-            BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                val lines = reader.readLines()
-                if (lines.isEmpty()) {
-                    return@withContext Result.success(0)
-                }
-
-                val existingCategories = categoryDao.getAllCategories().first().toMutableList()
-                val categoryMap = existingCategories.associateBy { it.name.lowercase().trim() }.toMutableMap()
-
-                val newTransactions = mutableListOf<TransactionEntity>()
-
-                // Skip header if present
-                val startIndex = if (lines[0].contains("Date", ignoreCase = true) || lines[0].contains("Title", ignoreCase = true)) 1 else 0
-
-                for (i in startIndex until lines.size) {
-                    val line = lines[i].trim()
-                    if (line.isEmpty()) continue
-
-                    val tokens = parseCsvLine(line)
-                    if (tokens.size < 4) continue
-
-                    // Determine column format based on size
-                    val hasAccount = tokens.size >= 8
-                    val hasNote = tokens.size >= 7
-
-                    val dateStr = if (hasAccount || hasNote) tokens[1] else tokens[0]
-                    val title = if (hasAccount || hasNote) tokens[2] else tokens.getOrElse(1) { "Imported" }
-                    val typeStr = if (hasAccount || hasNote) tokens[3] else tokens.getOrElse(2) { "EXPENSE" }
-                    val amountStr = if (hasAccount || hasNote) tokens[4] else tokens.getOrElse(3) { "0" }
-                    val catName = if (hasAccount || hasNote) tokens[5] else tokens.getOrElse(4) { "" }
-                    
-                    val accountStr = if (hasAccount) tokens[6] else ""
-                    val noteStr = if (hasAccount) tokens.getOrElse(7) { "" } else if (hasNote) tokens[6] else tokens.getOrElse(5) { "" }
-
-                    val timestamp = try {
-                        dateFormat.parse(dateStr)?.time ?: System.currentTimeMillis()
-                    } catch (e: Exception) {
-                        System.currentTimeMillis()
-                    }
-
-                    val type = try {
-                        TransactionType.valueOf(typeStr.uppercase().trim())
-                    } catch (e: Exception) {
-                        TransactionType.EXPENSE
-                    }
-
-                    val amount = amountStr.toDoubleOrNull() ?: 0.0
-                    if (amount <= 0) continue
-
-                    val cleanCatName = catName.trim()
-                    var categoryId: Long? = null
-
-                    if (cleanCatName.isNotEmpty() && cleanCatName.lowercase() != "uncategorized") {
-                        val catEntity = categoryMap[cleanCatName.lowercase()]
-                        if (catEntity == null) {
-                            val newCat = CategoryEntity(
-                                name = cleanCatName,
-                                type = type,
-                                iconName = if (type == TransactionType.EXPENSE) "ShoppingCart" else "AccountBalanceWallet",
-                                colorHex = if (type == TransactionType.EXPENSE) "#3B82F6" else "#10B981"
-                            )
-                            val insertedId = categoryDao.insertCategory(newCat)
-                            val created = newCat.copy(id = insertedId)
-                            categoryMap[cleanCatName.lowercase()] = created
-                            categoryId = insertedId
-                        } else {
-                            categoryId = catEntity.id
-                        }
-                    }
-
-                    val finalNote: String? = if (noteStr.isBlank()) null else noteStr
-                    val accountId: Long? = accountStr.toLongOrNull()
-
-                    newTransactions.add(
-                        TransactionEntity(
-                            title = if (title.isBlank()) "Imported Transaction" else title,
-                            amount = amount,
-                            type = type,
-                            categoryId = categoryId,
-                            accountId = accountId,
-                            dateTimestamp = timestamp,
-                            note = finalNote
-                        )
-                    )
-                }
-
-                if (newTransactions.isNotEmpty()) {
-                    transactionDao.insertTransactions(newTransactions)
-                    newTransactionsCount = newTransactions.size
-                }
+            val text = inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }.removePrefix("﻿")
+            val rows = parseCsv(text).filter { row -> row.any { it.isNotBlank() } }
+            if (rows.isEmpty()) {
+                return@withContext Result.success(CsvImportSummary(0, 0, 0))
             }
 
-            Result.success(newTransactionsCount)
+            val categoryMap = categoryDao.getAllCategories().first()
+                .associateBy { it.name.lowercase().trim() }
+                .toMutableMap()
+            val accounts = accountDao.getAllAccounts().first()
+            val accountsByName = accounts.associateBy { it.name.lowercase().trim() }
+            val accountIds = accounts.map { it.id }.toSet()
+
+            // Skip rows that already exist, so importing the same file twice does not double everything
+            val existingKeys = transactionDao.getAllTransactionsList()
+                .map { duplicateKey(it.dateTimestamp, it.amount, it.title, it.type) }
+                .toMutableSet()
+
+            val header = rows.first().map { it.trim().lowercase() }
+            val hasHeader = "date" in header || "title" in header || "amount" in header
+            val columns = if (hasHeader) header else emptyList()
+            val dataRows = if (hasHeader) rows.drop(1) else rows
+
+            fun column(row: List<String>, name: String, positional: Int?): String {
+                if (hasHeader) {
+                    val index = columns.indexOf(name)
+                    return if (index >= 0) row.getOrElse(index) { "" }.trim() else ""
+                }
+                return positional?.let { row.getOrElse(it) { "" }.trim() } ?: ""
+            }
+
+            fun resolveAccount(value: String): Long? {
+                if (value.isBlank()) return null
+                accountsByName[value.lowercase()]?.let { return it.id }
+                // Older exports wrote the account id instead of its name
+                return value.toLongOrNull()?.takeIf { it in accountIds }
+            }
+
+            val newTransactions = mutableListOf<TransactionEntity>()
+            var skippedDuplicates = 0
+            var skippedInvalid = 0
+
+            for (row in dataRows) {
+                // Without a header, support both "ID,Date,Title,..." exports and the short "Date,Title,Type,Amount,..." layout
+                val offset = if (!hasHeader && row.size >= 7) 1 else 0
+                val dateStr = column(row, "date", offset)
+                val title = column(row, "title", offset + 1)
+                val typeStr = column(row, "type", offset + 2)
+                val amountStr = column(row, "amount", offset + 3)
+                val catName = column(row, "category", offset + 4)
+                val accountStr = column(row, "account", if (offset == 1) 6 else null)
+                val noteStr = column(row, "note", if (offset == 1) 7 else 5)
+                val toAccountStr = column(row, "toaccount", if (offset == 1) 8 else null)
+
+                val amount = amountStr.replace(Regex("[^0-9.\\-]"), "").toDoubleOrNull()?.let { abs(it) }
+                if (amount == null || amount == 0.0) {
+                    skippedInvalid++
+                    continue
+                }
+
+                val type = TransactionType.entries.firstOrNull { it.name.equals(typeStr.trim(), ignoreCase = true) }
+                    ?: TransactionType.EXPENSE
+                val timestamp = parseTimestamp(dateStr) ?: System.currentTimeMillis()
+                val finalTitle = title.ifBlank { "Imported Transaction" }
+
+                val key = duplicateKey(timestamp, amount, finalTitle, type)
+                if (key in existingKeys) {
+                    skippedDuplicates++
+                    continue
+                }
+                existingKeys += key
+
+                val accountId = resolveAccount(accountStr)
+                val toAccountId = if (type == TransactionType.TRANSFER) resolveAccount(toAccountStr) else null
+
+                var categoryId: Long? = null
+                val cleanCatName = catName.trim()
+                if (type != TransactionType.TRANSFER && cleanCatName.isNotEmpty() && !cleanCatName.equals("uncategorized", ignoreCase = true)) {
+                    val existing = categoryMap[cleanCatName.lowercase()]
+                    categoryId = if (existing != null) {
+                        existing.id
+                    } else {
+                        val newCat = CategoryEntity(
+                            name = cleanCatName,
+                            type = type,
+                            iconName = if (type == TransactionType.EXPENSE) "ShoppingCart" else "AccountBalanceWallet",
+                            colorHex = if (type == TransactionType.EXPENSE) "#3B82F6" else "#10B981"
+                        )
+                        val insertedId = categoryDao.insertCategory(newCat)
+                        categoryMap[cleanCatName.lowercase()] = newCat.copy(id = insertedId)
+                        insertedId
+                    }
+                }
+
+                newTransactions += TransactionEntity(
+                    title = finalTitle,
+                    amount = amount,
+                    type = type,
+                    categoryId = categoryId,
+                    accountId = accountId,
+                    toAccountId = toAccountId,
+                    dateTimestamp = timestamp,
+                    note = noteStr.ifBlank { null }
+                )
+            }
+
+            if (newTransactions.isNotEmpty()) {
+                transactionDao.insertTransactions(newTransactions)
+            }
+
+            Result.success(CsvImportSummary(newTransactions.size, skippedDuplicates, skippedInvalid))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    private fun escapeCsvField(value: String): String {
-        return value.replace("\"", "\"\"")
+    private fun duplicateKey(timestamp: Long, amount: Double, title: String, type: TransactionType): String =
+        "${timestamp / 1000}|${String.format(Locale.US, "%.2f", amount)}|${title.trim().lowercase()}|${type.name}"
+
+    private fun parseTimestamp(value: String): Long? {
+        val text = value.trim()
+        if (text.isEmpty()) return null
+        val zone = ZoneId.systemDefault()
+        for (format in dateTimeFormats) {
+            runCatching { LocalDateTime.parse(text, format) }.getOrNull()?.let {
+                return it.atZone(zone).toInstant().toEpochMilli()
+            }
+        }
+        for (format in dateFormats) {
+            runCatching { LocalDate.parse(text, format) }.getOrNull()?.let {
+                // Date-only rows land at noon so they never slip into the neighbouring day
+                return it.atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+            }
+        }
+        return null
     }
 
-    private fun parseCsvLine(line: String): List<String> {
-        val result = mutableListOf<String>()
-        val sb = java.lang.StringBuilder()
+    private fun csvField(value: String): String = "\"" + value.replace("\"", "\"\"") + "\""
+
+    /** RFC 4180 parser: handles quoted fields, escaped quotes and line breaks inside quotes. */
+    private fun parseCsv(text: String): List<List<String>> {
+        val rows = mutableListOf<List<String>>()
+        var row = mutableListOf<String>()
+        val field = StringBuilder()
         var inQuotes = false
         var i = 0
 
-        while (i < line.length) {
-            val c = line[i]
-            if (c == '\"') {
-                if (inQuotes && i + 1 < line.length && line[i + 1] == '\"') {
-                    sb.append('\"')
-                    i++ // Skip escaped quote
-                } else {
-                    inQuotes = !inQuotes
+        while (i < text.length) {
+            val c = text[i]
+            when {
+                inQuotes && c == '"' && i + 1 < text.length && text[i + 1] == '"' -> {
+                    field.append('"')
+                    i++
                 }
-            } else if (c == ',' && !inQuotes) {
-                result.add(sb.toString().trim())
-                sb.setLength(0)
-            } else {
-                sb.append(c)
+                c == '"' -> inQuotes = !inQuotes
+                !inQuotes && c == ',' -> {
+                    row += field.toString()
+                    field.setLength(0)
+                }
+                !inQuotes && (c == '\n' || c == '\r') -> {
+                    if (c == '\r' && i + 1 < text.length && text[i + 1] == '\n') i++
+                    row += field.toString()
+                    field.setLength(0)
+                    rows += row
+                    row = mutableListOf()
+                }
+                else -> field.append(c)
             }
             i++
         }
-        result.add(sb.toString().trim())
-        return result
+        if (field.isNotEmpty() || row.isNotEmpty()) {
+            row += field.toString()
+            rows += row
+        }
+        return rows
     }
 }

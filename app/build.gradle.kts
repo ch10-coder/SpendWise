@@ -13,8 +13,8 @@ android {
         applicationId = "com.spendwise.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "2.4.0"
+        versionCode = 7
+        versionName = "2.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -95,8 +95,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    // Biometric (App Lock)
+    // Biometric (App Lock); BiometricPrompt needs a FragmentActivity
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.fragment)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

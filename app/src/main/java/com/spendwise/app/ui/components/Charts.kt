@@ -1,5 +1,6 @@
 package com.spendwise.app.ui.components
 
+import com.spendwise.app.util.IndianCurrencyFormatter
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -114,7 +115,7 @@ fun DonutPieChart(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "$currencySymbol${String.format(Locale.US, "%,.2f", totalExpense)}",
+                    text = "${IndianCurrencyFormatter.formatInr(totalExpense, currencySymbol)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -163,7 +164,7 @@ fun DonutPieChart(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "$currencySymbol${String.format(Locale.US, "%,.2f", item.totalAmount)}",
+                        text = "${IndianCurrencyFormatter.formatInr(item.totalAmount, currencySymbol)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface

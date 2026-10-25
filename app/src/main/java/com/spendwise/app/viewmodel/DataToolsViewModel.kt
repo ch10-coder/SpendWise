@@ -51,8 +51,13 @@ class DataToolsViewModel(
         viewModelScope.launch {
             _importState.value = DataToolState.Processing
             val result = repository.importTransactionsFromCsv(inputStream)
-            result.onSuccess { count ->
-                _importState.value = DataToolState.Success("Successfully imported $count transactions from CSV file.")
+            result.onSuccess { summary ->
+                val skipped = buildList {
+                    if (summary.skippedDuplicates > 0) add("${summary.skippedDuplicates} already in the app")
+                    if (summary.skippedInvalid > 0) add("${summary.skippedInvalid} without a valid amount")
+                }
+                val skippedText = if (skipped.isEmpty()) "" else " Skipped ${skipped.joinToString(" and ")}."
+                _importState.value = DataToolState.Success("Imported ${summary.imported} transactions from the CSV file.$skippedText")
                 startAutoDismiss()
             }.onFailure { error ->
                 _importState.value = DataToolState.Error(error.localizedMessage ?: "Failed to import data")

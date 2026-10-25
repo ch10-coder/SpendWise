@@ -8,11 +8,13 @@ import com.spendwise.app.data.repository.MonthlySummary
 import com.spendwise.app.data.repository.SpendWiseRepository
 import com.spendwise.app.model.CurrencyOption
 import com.spendwise.app.model.DateRangeFilter
+import com.spendwise.app.model.TransactionDraft
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -107,7 +109,11 @@ class TimelineViewModel(
                 Pair(s, e)
             }
             DateRangeFilter.CUSTOM -> {
-                Pair(filters.customStart ?: 0L, filters.customEnd ?: Long.MAX_VALUE)
+                // The range picker reports UTC-midnight dates; turn them into full local days
+                // so the start day and the whole end day are included.
+                val s = filters.customStart?.let { utcDateToLocalDate(it).atStartOfDay(zone).toInstant().toEpochMilli() } ?: 0L
+                val e = filters.customEnd?.let { utcDateToLocalDate(it).plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1 } ?: Long.MAX_VALUE
+                Pair(s, e)
             }
         }
 
@@ -191,77 +197,58 @@ class TimelineViewModel(
         }
     }
 
-    fun addTransaction(
-        title: String,
-        amount: Double,
-        type: TransactionType,
-        categoryId: Long?,
-        dateTimestamp: Long,
-        note: String?,
-        accountId: Long? = null,
-        toAccountId: Long? = null,
-        tagIds: List<Long> = emptyList()
-    ) {
+    /** Adds a new transaction, or updates [existingId] while keeping fields the sheet doesn't edit
+     *  (recurring link, receipt, split group). */
+    fun saveTransaction(existingId: Long?, draft: TransactionDraft) {
         viewModelScope.launch {
-            val insertedId = repository.insertTransaction(
-                TransactionEntity(
-                    title = title,
-                    amount = amount,
-                    type = type,
-                    categoryId = categoryId,
-                    dateTimestamp = dateTimestamp,
-                    note = note,
-                    accountId = accountId,
-                    toAccountId = toAccountId
+            if (existingId == null) {
+                val insertedId = repository.insertTransaction(
+                    TransactionEntity(
+                        title = draft.title,
+                        amount = draft.amount,
+                        type = draft.type,
+                        categoryId = draft.categoryId,
+                        dateTimestamp = draft.dateTimestamp,
+                        note = draft.note,
+                        accountId = draft.accountId,
+                        toAccountId = draft.toAccountId
+                    )
                 )
-            )
-            if (tagIds.isNotEmpty()) {
-                repository.setTagsForTransaction(insertedId, tagIds)
+                repository.setTagsForTransaction(insertedId, draft.tagIds)
+            } else {
+                val existing = repository.getTransactionById(existingId) ?: return@launch
+                repository.updateTransaction(
+                    existing.copy(
+                        title = draft.title,
+                        amount = draft.amount,
+                        type = draft.type,
+                        categoryId = draft.categoryId,
+                        dateTimestamp = draft.dateTimestamp,
+                        note = draft.note,
+                        accountId = draft.accountId,
+                        toAccountId = draft.toAccountId
+                    )
+                )
+                repository.setTagsForTransaction(existingId, draft.tagIds)
             }
         }
     }
 
-    fun updateTransaction(
-        id: Long,
-        title: String,
-        amount: Double,
-        type: TransactionType,
-        categoryId: Long?,
-        dateTimestamp: Long,
-        note: String?,
-        accountId: Long? = null,
-        toAccountId: Long? = null,
-        tagIds: List<Long> = emptyList()
-    ) {
+    suspend fun getTagIdsForTransaction(transactionId: Long): List<Long> =
+        repository.getTagIdsForTransaction(transactionId)
+
+    /** Deletes the transaction; the returned value holds its tag ids for [undoDelete]. */
+    fun deleteTransaction(transaction: TransactionEntity): Deferred<List<Long>> =
+        viewModelScope.async { repository.deleteTransactionKeepingTags(transaction) }
+
+    fun undoDelete(transaction: TransactionEntity, deletion: Deferred<List<Long>>) {
         viewModelScope.launch {
-            repository.updateTransaction(
-                TransactionEntity(
-                    id = id,
-                    title = title,
-                    amount = amount,
-                    type = type,
-                    categoryId = categoryId,
-                    dateTimestamp = dateTimestamp,
-                    note = note,
-                    accountId = accountId,
-                    toAccountId = toAccountId
-                )
-            )
-            repository.setTagsForTransaction(id, tagIds)
+            repository.restoreTransaction(transaction, deletion.await())
         }
     }
 
-    fun deleteTransaction(id: Long) {
-        viewModelScope.launch {
-            repository.deleteTransactionById(id)
-        }
-    }
-
-    fun deleteTransactionWithUndo(transaction: TransactionEntity): Job {
-        return viewModelScope.launch {
-            repository.deleteTransaction(transaction)
-        }
-    }
+    private fun utcDateToLocalDate(utcMillis: Long): LocalDate =
+        java.time.Instant.ofEpochMilli(utcMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
 
     companion object {
         private val FULL_HEADER_FORMAT = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.getDefault())
@@ -285,7 +272,12 @@ class TimelineViewModel(
 
         return groups.map { (header, items) ->
             val dayTotal = items.sumOf {
-                if (it.transaction.type == TransactionType.INCOME) it.transaction.amount else -it.transaction.amount
+                when (it.transaction.type) {
+                    TransactionType.INCOME -> it.transaction.amount
+                    TransactionType.EXPENSE -> -it.transaction.amount
+                    // Transfers only move money between your own accounts
+                    TransactionType.TRANSFER -> 0.0
+                }
             }
             val formatted = IndianCurrencyFormatter.formatInr(Math.abs(dayTotal), symbol)
             val prefix = if (dayTotal >= 0) "+$formatted" else "-$formatted"

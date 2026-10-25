@@ -10,6 +10,19 @@ data class TransactionWithCategory(
     val category: CategoryEntity?
 )
 
+/** Everything the add/edit transaction sheet collected, handed back to the caller in one piece. */
+data class TransactionDraft(
+    val title: String,
+    val amount: Double,
+    val type: TransactionType,
+    val categoryId: Long?,
+    val dateTimestamp: Long,
+    val note: String?,
+    val accountId: Long?,
+    val toAccountId: Long?,
+    val tagIds: List<Long>
+)
+
 /** Extended transaction with category, account, and tags info for display */
 data class TransactionDisplayItem(
     val transaction: TransactionEntity,

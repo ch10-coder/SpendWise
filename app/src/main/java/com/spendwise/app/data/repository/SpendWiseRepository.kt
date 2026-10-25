@@ -14,6 +14,7 @@ import com.spendwise.app.data.local.entity.TagEntity
 import com.spendwise.app.data.local.entity.TransactionEntity
 import com.spendwise.app.data.local.entity.TransactionTagCrossRef
 import com.spendwise.app.data.preferences.UserPreferencesManager
+import com.spendwise.app.data.service.CsvImportSummary
 import com.spendwise.app.data.service.CsvService
 import com.spendwise.app.data.service.RecurringTransactionService
 import com.spendwise.app.model.AccountWithBalance
@@ -65,6 +66,7 @@ class SpendWiseRepository(
     val initialIsDynamicColor: Boolean get() = preferencesManager.initialIsDynamicColor
     val initialIsAmoledBlack: Boolean get() = preferencesManager.initialIsAmoledBlack
     val initialCurrencySymbol: String get() = preferencesManager.initialCurrencySymbol
+    val initialIsAppLockEnabled: Boolean get() = preferencesManager.initialIsAppLockEnabled
 
     // Preferences Flows
     val currencyCode: Flow<String> = preferencesManager.currencyCodeFlow
@@ -146,6 +148,20 @@ class SpendWiseRepository(
         transactionDao.deleteTransactionById(id)
     }
 
+    /** Deletes a transaction and returns its tag ids, so an undo can bring it back exactly as it was. */
+    suspend fun deleteTransactionKeepingTags(transaction: TransactionEntity): List<Long> {
+        val tagIds = getTagIdsForTransaction(transaction.id)
+        transactionDao.deleteTransaction(transaction)
+        return tagIds
+    }
+
+    /** Re-inserts a deleted transaction with its original id, recurring link and tags. */
+    suspend fun restoreTransaction(transaction: TransactionEntity, tagIds: List<Long>) {
+        transactionDao.insertTransaction(transaction)
+        val existingTagIds = tagDao.getAllTags().first().map { it.id }.toSet()
+        setTagsForTransaction(transaction.id, tagIds.filter { it in existingTagIds })
+    }
+
     suspend fun deleteAllTransactions() {
         transactionDao.deleteAllTransactions()
     }
@@ -153,30 +169,22 @@ class SpendWiseRepository(
     // Accounts
     fun getAllAccounts(): Flow<List<AccountEntity>> = accountDao.getAllAccounts()
 
+    /** Accounts with their live balance: opening balance + income - expenses - transfers out + transfers in. */
     fun getAccountsWithBalance(): Flow<List<AccountWithBalance>> {
-        return combine(accountDao.getAllAccounts(), transactionDao.getAllTransactionsWithCategory()) { accounts, transactions ->
-            accounts.map { account ->
-                val calculated = transactions.sumOf { tuple ->
-                    var delta = 0.0
-                    if (tuple.accountId == account.id) {
-                        when (tuple.type) {
-                            TransactionType.INCOME -> delta += tuple.amount
-                            TransactionType.EXPENSE -> delta -= tuple.amount
-                            TransactionType.TRANSFER -> delta -= tuple.amount
-                        }
-                    }
-                    if (tuple.toAccountId == account.id && tuple.type == TransactionType.TRANSFER) {
-                        delta += tuple.amount
-                    }
-                    delta
-                }
-                AccountWithBalance(account, calculated)
-            }
+        return accountDao.getAccountsWithBalance().map { list ->
+            list.map { AccountWithBalance(it.account, it.calculatedBalance) }
         }
     }
 
-    suspend fun insertAccount(account: AccountEntity): Long = accountDao.insertAccount(account)
-    suspend fun updateAccount(account: AccountEntity) = accountDao.updateAccount(account)
+    suspend fun insertAccount(account: AccountEntity): Long {
+        val id = accountDao.insertAccount(account)
+        if (account.isDefault) accountDao.clearDefaultExcept(id)
+        return id
+    }
+    suspend fun updateAccount(account: AccountEntity) {
+        if (account.isDefault) accountDao.clearDefaultExcept(account.id)
+        accountDao.updateAccount(account)
+    }
     suspend fun deleteAccount(account: AccountEntity) = accountDao.deleteAccount(account)
     suspend fun getDefaultAccount(): AccountEntity? = accountDao.getDefaultAccount()
 
@@ -188,6 +196,9 @@ class SpendWiseRepository(
     suspend fun deleteTag(tag: TagEntity) = tagDao.deleteTag(tag)
 
     fun getTagsForTransaction(transactionId: Long): Flow<List<TagEntity>> = tagDao.getTagsForTransaction(transactionId)
+
+    suspend fun getTagIdsForTransaction(transactionId: Long): List<Long> =
+        tagDao.getTagsForTransactionList(transactionId).map { it.id }
     
     suspend fun setTagsForTransaction(transactionId: Long, tagIds: List<Long>) {
         tagDao.deleteAllTagsForTransaction(transactionId)
@@ -200,10 +211,36 @@ class SpendWiseRepository(
     fun getActiveRecurringTransactions(): Flow<List<RecurringTransactionEntity>> = recurringTransactionDao.getActiveRecurringTransactions()
     
     suspend fun addRecurringTransaction(rule: RecurringTransactionEntity): Long = recurringTransactionDao.insertRecurringTransaction(rule)
-    suspend fun updateRecurringTransaction(rule: RecurringTransactionEntity) = recurringTransactionDao.updateRecurringTransaction(rule)
+    /**
+     * Saves an edited rule. Its schedule position is kept unless the start date or frequency changed;
+     * then it restarts from the first occurrence that is not in the past, so editing a rule never
+     * re-creates transactions that were already generated.
+     */
+    suspend fun updateRecurringTransaction(rule: RecurringTransactionEntity) {
+        val previous = recurringTransactionDao.getRecurringTransactionById(rule.id)
+        val now = System.currentTimeMillis()
+        val scheduleChanged = previous == null ||
+            previous.startDate != rule.startDate ||
+            previous.frequency != rule.frequency
+        val resumed = previous != null && !previous.isActive && rule.isActive
+        val nextOccurrence = if (scheduleChanged || (resumed && previous!!.nextOccurrence < now)) {
+            recurringTransactionService.firstOccurrenceFrom(rule, now)
+        } else {
+            previous!!.nextOccurrence
+        }
+        recurringTransactionDao.updateRecurringTransaction(rule.copy(nextOccurrence = nextOccurrence))
+    }
     suspend fun deleteRecurringTransaction(rule: RecurringTransactionEntity) = recurringTransactionDao.deleteRecurringTransaction(rule)
     
     suspend fun toggleRecurring(id: Long, isActive: Boolean) {
+        if (isActive) {
+            val rule = recurringTransactionDao.getRecurringTransactionById(id)
+            val now = System.currentTimeMillis()
+            if (rule != null && rule.nextOccurrence < now) {
+                // Resuming skips the occurrences that fell inside the pause instead of back-filling them
+                recurringTransactionDao.updateNextOccurrence(id, recurringTransactionService.firstOccurrenceFrom(rule, now))
+            }
+        }
         recurringTransactionDao.setActive(id, isActive)
     }
 
@@ -311,16 +348,21 @@ class SpendWiseRepository(
                 val day = date.dayOfMonth
                 val currentDaily = dailyMap[day] ?: Pair(0.0, 0.0)
 
-                if (t.type == TransactionType.INCOME) {
-                    totalIncome += t.amount
-                    dailyMap[day] = Pair(currentDaily.first, currentDaily.second + t.amount)
-                } else {
-                    totalExpense += t.amount
-                    dailyMap[day] = Pair(currentDaily.first + t.amount, currentDaily.second)
-                    if (item.category != null) {
-                        val currentCatAmount = expenseByCategory[item.category] ?: 0.0
-                        expenseByCategory[item.category] = currentCatAmount + t.amount
+                when (t.type) {
+                    TransactionType.INCOME -> {
+                        totalIncome += t.amount
+                        dailyMap[day] = Pair(currentDaily.first, currentDaily.second + t.amount)
                     }
+                    TransactionType.EXPENSE -> {
+                        totalExpense += t.amount
+                        dailyMap[day] = Pair(currentDaily.first + t.amount, currentDaily.second)
+                        if (item.category != null) {
+                            val currentCatAmount = expenseByCategory[item.category] ?: 0.0
+                            expenseByCategory[item.category] = currentCatAmount + t.amount
+                        }
+                    }
+                    // Moving money between your own accounts is neither income nor spending
+                    TransactionType.TRANSFER -> Unit
                 }
             }
 
@@ -359,7 +401,7 @@ class SpendWiseRepository(
     suspend fun exportTransactionsToCsv(outputStream: OutputStream): Result<Int> =
         csvService.exportTransactionsToCsv(outputStream)
 
-    suspend fun importTransactionsFromCsv(inputStream: InputStream): Result<Int> =
+    suspend fun importTransactionsFromCsv(inputStream: InputStream): Result<CsvImportSummary> =
         csvService.importTransactionsFromCsv(inputStream)
 
     // Helper: compute month timestamps using java.time

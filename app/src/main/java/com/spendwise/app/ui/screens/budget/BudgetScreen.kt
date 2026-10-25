@@ -1,5 +1,7 @@
 package com.spendwise.app.ui.screens.budget
 
+import com.spendwise.app.util.IndianCurrencyFormatter
+import com.spendwise.app.ui.components.ConfirmDeleteDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,6 +82,7 @@ fun BudgetScreen(
     val expenseCategories by viewModel.expenseCategories.collectAsState()
 
     var showAddBudgetDialog by remember { mutableStateOf(false) }
+    var pendingDeleteBudget by remember { mutableStateOf<BudgetWithSpending?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -252,7 +255,7 @@ fun BudgetScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "$currencySymbol${String.format(Locale.US, "%,.2f", overallSummary.totalSpent)}",
+                                    text = "${IndianCurrencyFormatter.formatInr(overallSummary.totalSpent, currencySymbol)}",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -266,7 +269,7 @@ fun BudgetScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "$currencySymbol${String.format(Locale.US, "%,.2f", overallSummary.totalBudget)}",
+                                    text = "${IndianCurrencyFormatter.formatInr(overallSummary.totalBudget, currencySymbol)}",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -303,11 +306,21 @@ fun BudgetScreen(
                     CategoryBudgetCard(
                         budget = budgetItem,
                         currencySymbol = currencySymbol,
-                        onDelete = { viewModel.deleteBudget(budgetItem.budgetId) }
+                        onDelete = { pendingDeleteBudget = budgetItem }
                     )
                 }
             }
         }
+    }
+
+    pendingDeleteBudget?.let { budget ->
+        ConfirmDeleteDialog(
+            title = "Remove Budget",
+            message = "Remove the ${budget.category.name} budget for this month? Your transactions are not affected.",
+            confirmLabel = "Remove",
+            onConfirm = { viewModel.deleteBudget(budget.budgetId) },
+            onDismiss = { pendingDeleteBudget = null }
+        )
     }
 
     if (showAddBudgetDialog) {
@@ -389,9 +402,9 @@ fun CategoryBudgetCard(
                     )
                     Text(
                         text = if (budget.isOverBudget) {
-                            "Over by $currencySymbol${String.format(Locale.US, "%,.2f", -budget.remainingAmount)}"
+                            "Over by ${IndianCurrencyFormatter.formatInr(-budget.remainingAmount, currencySymbol)}"
                         } else {
-                            "Remaining: $currencySymbol${String.format(Locale.US, "%,.2f", budget.remainingAmount)}"
+                            "Remaining: ${IndianCurrencyFormatter.formatInr(budget.remainingAmount, currencySymbol)}"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (budget.isOverBudget) GoogleRed else MaterialTheme.colorScheme.onSurfaceVariant
@@ -427,12 +440,12 @@ fun CategoryBudgetCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "$currencySymbol${String.format(Locale.US, "%,.2f", budget.spentAmount)} spent",
+                    text = "${IndianCurrencyFormatter.formatInr(budget.spentAmount, currencySymbol)} spent",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Limit $currencySymbol${String.format(Locale.US, "%,.2f", budget.limitAmount)}",
+                    text = "Limit ${IndianCurrencyFormatter.formatInr(budget.limitAmount, currencySymbol)}",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

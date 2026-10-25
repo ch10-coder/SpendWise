@@ -1,5 +1,7 @@
 package com.spendwise.app.ui.screens.timeline
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -22,7 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +39,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,9 +51,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spendwise.app.model.DateRangeFilter
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
 import com.spendwise.app.ui.components.AddEditTransactionSheet
+import com.spendwise.app.ui.components.ConfirmDeleteDialog
 import com.spendwise.app.ui.components.DateRangeSelector
 import com.spendwise.app.ui.components.EmptyState
 import com.spendwise.app.ui.components.SummaryCard
@@ -60,7 +66,7 @@ import com.spendwise.app.util.IndianCurrencyFormatter
 import com.spendwise.app.viewmodel.TimelineViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TimelineScreen(
     viewModel: TimelineViewModel,
@@ -84,29 +90,36 @@ fun TimelineScreen(
     val scope = rememberCoroutineScope()
     var showAddEditSheet by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<TransactionWithCategory?>(null) }
+    var editTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var newTransactionType by remember { mutableStateOf(TransactionType.EXPENSE) }
+    val listState = rememberLazyListState()
+    val isFabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
+
+    fun openNewTransaction(type: TransactionType) {
+        itemToEdit = null
+        editTagIds = emptySet()
+        newTransactionType = type
+        showAddEditSheet = true
+    }
     var pendingDeleteTransaction by remember { mutableStateOf<com.spendwise.app.data.local.entity.TransactionEntity?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    itemToEdit = null
-                    showAddEditSheet = true
-                },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ExtendedFloatingActionButton(
+                onClick = { openNewTransaction(TransactionType.EXPENSE) },
+                expanded = isFabExpanded,
+                icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
+                text = { Text("Add", fontWeight = FontWeight.Bold) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(18.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Transaction"
-                )
-            }
+            )
         }
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
@@ -119,8 +132,14 @@ fun TimelineScreen(
                     totalIncome = summary.totalIncome,
                     totalExpense = summary.totalExpense,
                     currencySymbol = currencySymbol,
+                    periodLabel = if (selectedDateRange == DateRangeFilter.CUSTOM) "Custom" else selectedDateRange.displayName,
                     isBalanceHidden = isBalanceHidden,
-                    onToggleHidden = viewModel::toggleBalanceHidden
+                    onToggleHidden = viewModel::toggleBalanceHidden,
+                    onAddExpense = { openNewTransaction(TransactionType.EXPENSE) },
+                    onAddIncome = { openNewTransaction(TransactionType.INCOME) },
+                    onAddTransfer = if (accounts.size >= 2) {
+                        { openNewTransaction(TransactionType.TRANSFER) }
+                    } else null
                 )
             }
 
@@ -228,6 +247,22 @@ fun TimelineScreen(
                                 )
                             )
                         }
+                        item {
+                            FilterChip(
+                                selected = selectedTypeFilter == TransactionType.TRANSFER,
+                                onClick = {
+                                    viewModel.onTypeFilterSelected(
+                                        if (selectedTypeFilter == TransactionType.TRANSFER) null else TransactionType.TRANSFER
+                                    )
+                                },
+                                label = { Text("Transfers") },
+                                shape = RoundedCornerShape(20.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -248,8 +283,7 @@ fun TimelineScreen(
                                 viewModel.onSearchQueryChanged("")
                                 viewModel.onTypeFilterSelected(null)
                             } else {
-                                itemToEdit = null
-                                showAddEditSheet = true
+                                openNewTransaction(TransactionType.EXPENSE)
                             }
                         }
                     )
@@ -257,10 +291,11 @@ fun TimelineScreen(
             } else {
                 // Grouped Transactions List using pre-aggregated day totals (120 FPS buttery smooth)
                 dateGroupedTransactions.forEach { group ->
-                    item(key = "header_${group.dateHeader}", contentType = "date_header") {
+                    stickyHeader(key = "header_${group.dateHeader}", contentType = "date_header") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.background)
                                 .padding(horizontal = 20.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -294,7 +329,13 @@ fun TimelineScreen(
                         key = { it.transaction.id },
                         contentType = { "transaction_item" }
                     ) { item ->
-                        val accountName = accountMap[item.transaction.accountId]?.name
+                        val tx = item.transaction
+                        val fromName = accountMap[tx.accountId]?.name
+                        val accountName = if (tx.type == TransactionType.TRANSFER) {
+                            "${fromName ?: "?"} → ${accountMap[tx.toAccountId]?.name ?: "?"}"
+                        } else {
+                            fromName
+                        }
                         TransactionItem(
                             item = item,
                             currencySymbol = currencySymbol,
@@ -302,8 +343,11 @@ fun TimelineScreen(
                             isRecurring = item.transaction.recurringRuleId != null,
                             hasReceipt = !item.transaction.receiptPath.isNullOrBlank(),
                             onClick = {
-                                itemToEdit = item
-                                showAddEditSheet = true
+                                scope.launch {
+                                    editTagIds = viewModel.getTagIdsForTransaction(item.transaction.id).toSet()
+                                    itemToEdit = item
+                                    showAddEditSheet = true
+                                }
                             },
                             onDelete = {
                                 pendingDeleteTransaction = item.transaction
@@ -351,55 +395,27 @@ fun TimelineScreen(
         }
     }
 
-    // Deletion Confirmation Dialog (Material 3 Styled)
-    if (pendingDeleteTransaction != null) {
-        val txToDelete = pendingDeleteTransaction!!
-        AlertDialog(
-            onDismissRequest = { pendingDeleteTransaction = null },
-            shape = RoundedCornerShape(28.dp),
-            title = { Text("Delete Transaction", fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    "Are you sure you want to delete \"${txToDelete.title}\" (${IndianCurrencyFormatter.formatInr(txToDelete.amount, currencySymbol)})?",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteTransaction(txToDelete.id)
-                        pendingDeleteTransaction = null
-                        snackbarHostState?.let { host ->
-                            scope.launch {
-                                val result = host.showSnackbar(
-                                    message = "Transaction deleted",
-                                    actionLabel = "Undo",
-                                    duration = SnackbarDuration.Short
-                                )
-                                if (result == SnackbarResult.ActionPerformed) {
-                                    viewModel.addTransaction(
-                                        title = txToDelete.title,
-                                        amount = txToDelete.amount,
-                                        type = txToDelete.type,
-                                        categoryId = txToDelete.categoryId,
-                                        dateTimestamp = txToDelete.dateTimestamp,
-                                        note = txToDelete.note,
-                                        accountId = txToDelete.accountId,
-                                        toAccountId = txToDelete.toAccountId
-                                    )
-                                }
-                            }
+    // Deletion Confirmation Dialog with Undo
+    pendingDeleteTransaction?.let { txToDelete ->
+        ConfirmDeleteDialog(
+            title = "Delete Transaction",
+            message = "Are you sure you want to delete \"${txToDelete.title}\" (${IndianCurrencyFormatter.formatInr(txToDelete.amount, currencySymbol)})?",
+            onConfirm = {
+                val deletion = viewModel.deleteTransaction(txToDelete)
+                snackbarHostState?.let { host ->
+                    scope.launch {
+                        val result = host.showSnackbar(
+                            message = "Transaction deleted",
+                            actionLabel = "Undo",
+                            duration = SnackbarDuration.Short
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.undoDelete(txToDelete, deletion)
                         }
                     }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteTransaction = null }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+            onDismiss = { pendingDeleteTransaction = null }
         )
     }
 
@@ -410,36 +426,18 @@ fun TimelineScreen(
             categories = categories,
             currencySymbol = currencySymbol,
             accounts = accounts,
-            selectedAccountId = itemToEdit?.transaction?.accountId ?: accounts.firstOrNull { it.isDefault }?.id,
+            defaultAccountId = accounts.firstOrNull { it.isDefault }?.id,
             tags = tags,
+            initialTagIds = editTagIds,
+            initialType = newTransactionType,
             onDismiss = { showAddEditSheet = false },
-            onSave = { title, amount, type, categoryId, dateTimestamp, note ->
-                if (itemToEdit == null) {
-                    viewModel.addTransaction(
-                        title = title,
-                        amount = amount,
-                        type = type,
-                        categoryId = categoryId,
-                        dateTimestamp = dateTimestamp,
-                        note = note
-                    )
-                } else {
-                    viewModel.updateTransaction(
-                        id = itemToEdit!!.transaction.id,
-                        title = title,
-                        amount = amount,
-                        type = type,
-                        categoryId = categoryId,
-                        dateTimestamp = dateTimestamp,
-                        note = note,
-                        accountId = itemToEdit!!.transaction.accountId,
-                        toAccountId = itemToEdit!!.transaction.toAccountId
-                    )
-                }
+            onSave = { draft ->
+                viewModel.saveTransaction(itemToEdit?.transaction?.id, draft)
                 showAddEditSheet = false
             },
-            onDelete = { id ->
-                viewModel.deleteTransaction(id)
+            onDelete = {
+                // Route through the same confirmation + undo flow as swipe-to-delete
+                pendingDeleteTransaction = itemToEdit?.transaction
                 showAddEditSheet = false
             }
         )

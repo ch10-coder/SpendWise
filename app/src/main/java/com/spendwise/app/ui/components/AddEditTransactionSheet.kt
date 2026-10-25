@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.spendwise.app.data.local.entity.AccountEntity
 import com.spendwise.app.data.local.entity.CategoryEntity
 import com.spendwise.app.data.local.entity.TagEntity
+import com.spendwise.app.model.TransactionDraft
 import com.spendwise.app.model.TransactionType
 import com.spendwise.app.model.TransactionWithCategory
 import com.spendwise.app.ui.theme.GoogleGreen
@@ -48,29 +49,42 @@ fun AddEditTransactionSheet(
     categories: List<CategoryEntity>,
     currencySymbol: String,
     onDismiss: () -> Unit,
-    onSave: (title: String, amount: Double, type: TransactionType, categoryId: Long?, dateTimestamp: Long, note: String?) -> Unit,
+    onSave: (TransactionDraft) -> Unit,
     onDelete: ((Long) -> Unit)? = null,
     accounts: List<AccountEntity> = emptyList(),
-    selectedAccountId: Long? = null,
-    onAccountSelected: (Long) -> Unit = {},
+    defaultAccountId: Long? = null,
     tags: List<TagEntity> = emptyList(),
-    selectedTagIds: Set<Long> = emptySet(),
-    onTagToggled: (Long) -> Unit = {}
+    initialTagIds: Set<Long> = emptySet(),
+    initialType: TransactionType = TransactionType.EXPENSE
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var type by remember { mutableStateOf(initialItem?.transaction?.type ?: TransactionType.EXPENSE) }
+    var type by remember { mutableStateOf(initialItem?.transaction?.type ?: initialType) }
     var amountText by remember { mutableStateOf(initialItem?.transaction?.amount?.let { if (it > 0) String.format(Locale.US, "%.2f", it) else "" } ?: "") }
     var title by remember { mutableStateOf(initialItem?.transaction?.title ?: "") }
     var selectedCategoryId by remember { mutableStateOf(initialItem?.transaction?.categoryId) }
     var dateTimestamp by remember { mutableLongStateOf(initialItem?.transaction?.dateTimestamp ?: System.currentTimeMillis()) }
     var note by remember { mutableStateOf(initialItem?.transaction?.note ?: "") }
+    var accountId by remember { mutableStateOf(if (initialItem != null) initialItem.transaction.accountId else defaultAccountId) }
+    var toAccountId by remember { mutableStateOf(initialItem?.transaction?.toAccountId) }
+    var selectedTagIds by remember { mutableStateOf(initialTagIds) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     val filteredCategories = categories.filter { it.type == type }
+    val canTransfer = accounts.size >= 2 || type == TransactionType.TRANSFER
+    val typeOptions = if (canTransfer) {
+        listOf(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER)
+    } else {
+        listOf(TransactionType.EXPENSE, TransactionType.INCOME)
+    }
+    val actionColor = when (type) {
+        TransactionType.EXPENSE -> GoogleRed
+        TransactionType.INCOME -> GoogleGreen
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.primary
+    }
     val dateFormatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
     val timeFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
 
@@ -109,7 +123,7 @@ fun AddEditTransactionSheet(
                 )
 
                 if (initialItem != null && onDelete != null) {
-                    IconButton(onClick = { onDelete(initialItem.transaction.id); onDismiss() }) {
+                    IconButton(onClick = { onDelete(initialItem.transaction.id) }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",
@@ -125,31 +139,35 @@ fun AddEditTransactionSheet(
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                SegmentedButton(
-                    selected = type == TransactionType.EXPENSE,
-                    onClick = { type = TransactionType.EXPENSE },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = GoogleRed.copy(alpha = 0.15f),
-                        activeContentColor = GoogleRed,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Text("Expense", fontWeight = FontWeight.Bold)
-                }
-                SegmentedButton(
-                    selected = type == TransactionType.INCOME,
-                    onClick = { type = TransactionType.INCOME },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = GoogleGreen.copy(alpha = 0.15f),
-                        activeContentColor = GoogleGreen,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Text("Income", fontWeight = FontWeight.Bold)
+                typeOptions.forEachIndexed { index, option ->
+                    val optionColor = when (option) {
+                        TransactionType.EXPENSE -> GoogleRed
+                        TransactionType.INCOME -> GoogleGreen
+                        TransactionType.TRANSFER -> MaterialTheme.colorScheme.primary
+                    }
+                    SegmentedButton(
+                        selected = type == option,
+                        onClick = {
+                            type = option
+                            errorMessage = null
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = typeOptions.size),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = optionColor.copy(alpha = 0.15f),
+                            activeContentColor = optionColor,
+                            inactiveContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text(
+                            text = when (option) {
+                                TransactionType.EXPENSE -> "Expense"
+                                TransactionType.INCOME -> "Income"
+                                TransactionType.TRANSFER -> "Transfer"
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -159,8 +177,9 @@ fun AddEditTransactionSheet(
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { input ->
-                    if (input.isEmpty() || input.matches(Regex("^\\d*(\\.\\d{0,2})?$"))) {
-                        amountText = input
+                    val cleaned = input.replace(",", "")
+                    if (cleaned.isEmpty() || cleaned.matches(Regex("^\\d*(\\.\\d{0,2})?$"))) {
+                        amountText = cleaned
                         errorMessage = null
                     }
                 },
@@ -179,7 +198,7 @@ fun AddEditTransactionSheet(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it; errorMessage = null },
-                label = { Text("Title / Description") },
+                label = { Text(if (type == TransactionType.TRANSFER) "Title (Optional)" else "Title / Description") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
@@ -189,9 +208,40 @@ fun AddEditTransactionSheet(
 
             // Account Selector
             if (accounts.isNotEmpty()) {
+                if (type == TransactionType.TRANSFER) {
+                    AccountChipRow(
+                        label = "From Account",
+                        accounts = accounts,
+                        selectedAccountId = accountId,
+                        disabledAccountId = toAccountId,
+                        onAccountClick = { accountId = it; errorMessage = null }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    AccountChipRow(
+                        label = "To Account",
+                        accounts = accounts,
+                        selectedAccountId = toAccountId,
+                        disabledAccountId = accountId,
+                        onAccountClick = { toAccountId = it; errorMessage = null }
+                    )
+                } else {
+                    AccountChipRow(
+                        label = "Account",
+                        accounts = accounts,
+                        selectedAccountId = accountId,
+                        disabledAccountId = null,
+                        // Tapping the selected account again leaves the transaction unassigned
+                        onAccountClick = { accountId = if (accountId == it) null else it }
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Category Selector (transfers move money between your own accounts, so they have no category)
+            if (type != TransactionType.TRANSFER) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Account",
+                        text = "Category",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -201,24 +251,24 @@ fun AddEditTransactionSheet(
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(accounts, key = { it.id }) { acc ->
-                            val isSelected = acc.id == selectedAccountId
-                            val accColor = CategoryIconHelper.parseColor(acc.colorHex)
+                        items(filteredCategories, key = { it.id }) { cat ->
+                            val isSelected = cat.id == selectedCategoryId
+                            val catColor = CategoryIconHelper.parseColor(cat.colorHex)
 
                             FilterChip(
                                 selected = isSelected,
-                                onClick = { onAccountSelected(acc.id) },
-                                label = { Text(acc.name) },
+                                onClick = { selectedCategoryId = if (isSelected) null else cat.id },
+                                label = { Text(cat.name) },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = CategoryIconHelper.getIcon(acc.iconName),
-                                        contentDescription = acc.name,
-                                        tint = if (isSelected) Color.White else accColor,
+                                        imageVector = CategoryIconHelper.getIcon(cat.iconName),
+                                        contentDescription = cat.name,
+                                        tint = if (isSelected) Color.White else catColor,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = accColor,
+                                    selectedContainerColor = catColor,
                                     selectedLabelColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(14.dp)
@@ -226,49 +276,9 @@ fun AddEditTransactionSheet(
                         }
                     }
                 }
+
                 Spacer(modifier = Modifier.height(16.dp))
             }
-
-            // Category Selector
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Category",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(filteredCategories, key = { it.id }) { cat ->
-                        val isSelected = cat.id == selectedCategoryId
-                        val catColor = CategoryIconHelper.parseColor(cat.colorHex)
-
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedCategoryId = cat.id },
-                            label = { Text(cat.name) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = CategoryIconHelper.getIcon(cat.iconName),
-                                    contentDescription = cat.name,
-                                    tint = if (isSelected) Color.White else catColor,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = catColor,
-                                selectedLabelColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Tag Selector
             if (tags.isNotEmpty()) {
@@ -285,12 +295,14 @@ fun AddEditTransactionSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(tags, key = { it.id }) { tag ->
-                            val isSelected = selectedTagIds.contains(tag.id)
+                            val isSelected = tag.id in selectedTagIds
                             val tagColor = CategoryIconHelper.parseColor(tag.colorHex)
 
                             FilterChip(
                                 selected = isSelected,
-                                onClick = { onTagToggled(tag.id) },
+                                onClick = {
+                                    selectedTagIds = if (isSelected) selectedTagIds - tag.id else selectedTagIds + tag.id
+                                },
                                 label = { Text(tag.name) },
                                 leadingIcon = if (isSelected) {
                                     { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
@@ -395,18 +407,41 @@ fun AddEditTransactionSheet(
                         errorMessage = "Please enter a valid amount greater than 0"
                         return@Button
                     }
-                    if (title.isBlank()) {
+
+                    val isTransfer = type == TransactionType.TRANSFER
+                    val fromAccount = accounts.firstOrNull { it.id == accountId }
+                    val toAccount = accounts.firstOrNull { it.id == toAccountId }
+                    if (isTransfer) {
+                        if (fromAccount == null || toAccount == null) {
+                            errorMessage = "Please choose both the From and To accounts"
+                            return@Button
+                        }
+                        if (fromAccount.id == toAccount.id) {
+                            errorMessage = "From and To accounts must be different"
+                            return@Button
+                        }
+                    }
+
+                    val finalTitle = title.trim().ifBlank {
+                        if (isTransfer) "Transfer: ${fromAccount?.name} → ${toAccount?.name}" else ""
+                    }
+                    if (finalTitle.isBlank()) {
                         errorMessage = "Please enter a title or description"
                         return@Button
                     }
 
                     onSave(
-                        title.trim(),
-                        parsedAmount,
-                        type,
-                        selectedCategoryId,
-                        dateTimestamp,
-                        note.trim().ifBlank { null }
+                        TransactionDraft(
+                            title = finalTitle,
+                            amount = parsedAmount,
+                            type = type,
+                            categoryId = if (isTransfer) null else selectedCategoryId,
+                            dateTimestamp = dateTimestamp,
+                            note = note.trim().ifBlank { null },
+                            accountId = accountId,
+                            toAccountId = if (isTransfer) toAccountId else null,
+                            tagIds = selectedTagIds.filter { id -> tags.any { it.id == id } }
+                        )
                     )
                     onDismiss()
                 },
@@ -415,7 +450,7 @@ fun AddEditTransactionSheet(
                     .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (type == TransactionType.EXPENSE) GoogleRed else GoogleGreen
+                    containerColor = actionColor
                 )
             ) {
                 Text(
@@ -493,5 +528,54 @@ fun AddEditTransactionSheet(
                 }
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AccountChipRow(
+    label: String,
+    accounts: List<AccountEntity>,
+    selectedAccountId: Long?,
+    disabledAccountId: Long?,
+    onAccountClick: (Long) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(accounts, key = { it.id }) { acc ->
+                val isSelected = acc.id == selectedAccountId
+                val accColor = CategoryIconHelper.parseColor(acc.colorHex)
+
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onAccountClick(acc.id) },
+                    enabled = acc.id != disabledAccountId,
+                    label = { Text(acc.name) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = CategoryIconHelper.getIcon(acc.iconName),
+                            contentDescription = acc.name,
+                            tint = if (isSelected) Color.White else accColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = accColor,
+                        selectedLabelColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                )
+            }
+        }
     }
 }

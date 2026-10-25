@@ -18,9 +18,10 @@ object IndianCurrencyFormatter {
      */
     fun formatInr(amount: Double, symbol: String = "₹", includeDecimals: Boolean = true): String {
         val isNegative = amount < 0
-        val absAmount = Math.abs(amount)
-        val longPart = absAmount.toLong()
-        val decimalPart = Math.round((absAmount - longPart) * 100).toInt()
+        // Round to whole paise first so e.g. 12.999 becomes 13.00 instead of 12.99
+        val totalPaise = Math.round(Math.abs(amount) * 100)
+        val longPart = totalPaise / 100
+        val decimalPart = (totalPaise % 100).toInt()
 
         val longStr = longPart.toString()
         val formattedLong = if (longStr.length <= 3) {
@@ -40,9 +41,9 @@ object IndianCurrencyFormatter {
             sb.reverse().append(',').append(lastThree).toString()
         }
 
-        val sign = if (isNegative) "-" else ""
+        val sign = if (isNegative && totalPaise > 0) "-" else ""
         return if (includeDecimals) {
-            val decStr = if (decimalPart < 10) "0$decimalPart" else if (decimalPart >= 100) "99" else decimalPart.toString()
+            val decStr = if (decimalPart < 10) "0$decimalPart" else decimalPart.toString()
             "$sign$symbol$formattedLong.$decStr"
         } else {
             "$sign$symbol$formattedLong"

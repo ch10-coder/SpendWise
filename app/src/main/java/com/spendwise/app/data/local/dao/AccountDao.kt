@@ -2,6 +2,7 @@ package com.spendwise.app.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -9,6 +10,11 @@ import androidx.room.Update
 import com.spendwise.app.data.local.entity.AccountEntity
 import com.spendwise.app.model.AccountType
 import kotlinx.coroutines.flow.Flow
+
+data class AccountBalanceTuple(
+    @Embedded val account: AccountEntity,
+    val calculatedBalance: Double
+)
 
 @Dao
 interface AccountDao {
@@ -43,10 +49,26 @@ interface AccountDao {
     @Query("SELECT COUNT(*) FROM accounts")
     suspend fun getAccountCount(): Int
 
-    /** Calculate account balance from transactions.
-     *  Income adds, Expense subtracts, Transfers subtract from source. */
+    @Query("UPDATE accounts SET isDefault = 0 WHERE id != :id")
+    suspend fun clearDefaultExcept(id: Long)
+
+    /** Every account with its live balance: the opening balance plus income, minus expenses
+     *  and transfers out, plus transfers in. */
     @Query("""
-        SELECT COALESCE(
+        SELECT a.*, a.balance
+            + COALESCE((SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END)
+                        FROM transactions t WHERE t.accountId = a.id), 0)
+            + COALESCE((SELECT SUM(t.amount) FROM transactions t
+                        WHERE t.toAccountId = a.id AND t.type = 'TRANSFER'), 0) AS calculatedBalance
+        FROM accounts a
+        ORDER BY a.isDefault DESC, a.name ASC
+    """)
+    fun getAccountsWithBalance(): Flow<List<AccountBalanceTuple>>
+
+    /** Calculate account balance from transactions.
+     *  Opening balance, plus income, minus expenses and transfers out, plus transfers in. */
+    @Query("""
+        SELECT (SELECT balance FROM accounts WHERE id = :accountId) + COALESCE(
             (SELECT SUM(amount) FROM transactions WHERE accountId = :accountId AND type = 'INCOME'), 0
         ) - COALESCE(
             (SELECT SUM(amount) FROM transactions WHERE accountId = :accountId AND type = 'EXPENSE'), 0

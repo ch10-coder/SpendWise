@@ -2,40 +2,43 @@ package com.spendwise.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.spendwise.app.ui.theme.InflowGreen
-import com.spendwise.app.ui.theme.OutflowRed
-import com.spendwise.app.ui.theme.SaffronPulse
+import com.spendwise.app.ui.theme.HeroGradientDark
+import com.spendwise.app.ui.theme.HeroGradientLight
+import com.spendwise.app.ui.theme.HeroInflowTint
+import com.spendwise.app.ui.theme.HeroOutflowTint
 import com.spendwise.app.util.IndianCurrencyFormatter
+import kotlin.math.roundToInt
 
 /**
- * Bharat Modern Ledger Summary Card
- * Designed for Indian personal finance tracking.
- * Features Indian numbering format, cashflow ratio, and quick actions.
+ * Hero cashflow card at the top of Home: net cashflow for the selected period,
+ * a one-line savings insight, income vs spending, and one-tap quick actions.
  */
 @Composable
 fun SummaryCard(
@@ -44,12 +47,21 @@ fun SummaryCard(
     totalExpense: Double,
     currencySymbol: String = "₹",
     modifier: Modifier = Modifier,
+    periodLabel: String = "This Month",
     isBalanceHidden: Boolean = false,
     onToggleHidden: () -> Unit = {},
-    onQuickAddExpense: (() -> Unit)? = null,
-    onQuickPayUpi: (() -> Unit)? = null
+    onAddExpense: () -> Unit = {},
+    onAddIncome: () -> Unit = {},
+    onAddTransfer: (() -> Unit)? = null
 ) {
-    val isPositive = totalBalance >= 0
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val heroBrush = remember(isDark) {
+        Brush.linearGradient(if (isDark) HeroGradientDark else HeroGradientLight)
+    }
+    val onHero = Color.White
+    val onHeroMuted = Color.White.copy(alpha = 0.72f)
+    val glass = Color.White.copy(alpha = 0.12f)
+
     val totalFlow = totalIncome + totalExpense
     val incomeRatio = if (totalFlow > 0) (totalIncome / totalFlow).toFloat().coerceIn(0f, 1f) else 0.5f
 
@@ -57,57 +69,43 @@ fun SummaryCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(heroBrush)
                 .padding(20.dp)
         ) {
-            // Top Header: Label & Privacy Eye
+            // Period label & privacy toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Surface(shape = RoundedCornerShape(10.dp), color = glass) {
+                    Text(
+                        text = "Net cashflow • $periodLabel",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = onHero,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Wallet,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Text(
-                            text = "Total Net Balance",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
+                    )
                 }
 
                 IconButton(
                     onClick = onToggleHidden,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                        .background(glass)
                 ) {
                     Icon(
                         imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = "Toggle Balance Visibility",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        contentDescription = if (isBalanceHidden) "Show amounts" else "Hide amounts",
+                        tint = onHero,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -115,146 +113,139 @@ fun SummaryCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Big Indian Headline Balance
-            val balanceColor = when {
-                isBalanceHidden -> MaterialTheme.colorScheme.onSurface
-                !isPositive -> OutflowRed
-                else -> MaterialTheme.colorScheme.onSurface
-            }
             val balanceText = if (isBalanceHidden) "••••••" else IndianCurrencyFormatter.formatInr(totalBalance, currencySymbol)
-
             Text(
                 text = balanceText,
                 style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 34.sp,
-                    letterSpacing = (-0.5).sp
+                    fontSize = 36.sp,
+                    lineHeight = 42.sp,
+                    letterSpacing = (-0.8).sp
                 ),
                 fontWeight = FontWeight.ExtraBold,
-                color = balanceColor
+                color = onHero,
+                maxLines = 1
             )
+
+            if (!isBalanceHidden) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = cashflowInsight(totalIncome, totalExpense, currencySymbol),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = onHeroMuted
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Inflow & Outflow Pill Cards
+            // Income & spending
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                IndianMetricPill(
-                    title = "Monthly Inflow",
+                HeroMetric(
+                    title = "Income",
                     amount = totalIncome,
                     currencySymbol = currencySymbol,
-                    isIncome = true,
-                    isBalanceHidden = isBalanceHidden,
+                    icon = Icons.Default.ArrowDownward,
+                    accent = HeroInflowTint,
+                    isHidden = isBalanceHidden,
                     modifier = Modifier.weight(1f)
                 )
-
-                IndianMetricPill(
-                    title = "Monthly Outflow",
+                HeroMetric(
+                    title = "Spent",
                     amount = totalExpense,
                     currencySymbol = currencySymbol,
-                    isIncome = false,
-                    isBalanceHidden = isBalanceHidden,
+                    icon = Icons.Default.ArrowUpward,
+                    accent = HeroOutflowTint,
+                    isHidden = isBalanceHidden,
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // Cashflow Ratio Health Strip
+            // Income vs spending split
             if (totalFlow > 0 && !isBalanceHidden) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 val animatedIncomeRatio by animateFloatAsState(
                     targetValue = incomeRatio,
                     animationSpec = tween(durationMillis = 600),
                     label = "cashflow_ratio"
                 )
-
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Inflow ${(incomeRatio * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = InflowGreen,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Outflow ${((1f - incomeRatio) * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = OutflowRed,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(HeroOutflowTint.copy(alpha = 0.55f))
+                ) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
+                            .fillMaxHeight()
+                            .fillMaxWidth(animatedIncomeRatio)
                             .clip(CircleShape)
-                            .background(OutflowRed.copy(alpha = 0.25f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(animatedIncomeRatio)
-                                .clip(CircleShape)
-                                .background(InflowGreen)
-                        )
-                    }
+                            .background(HeroInflowTint)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Indian Quick Actions Strip
+            // Quick actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                QuickActionChip(
-                    text = "Pay UPI",
-                    icon = Icons.Default.QrCodeScanner,
-                    accentColor = MaterialTheme.colorScheme.primary,
-                    onClick = { onQuickPayUpi?.invoke() ?: onQuickAddExpense?.invoke() },
+                HeroAction(
+                    text = "Expense",
+                    icon = Icons.Default.Remove,
+                    onClick = onAddExpense,
                     modifier = Modifier.weight(1f)
                 )
-                QuickActionChip(
-                    text = "Add Expense",
+                HeroAction(
+                    text = "Income",
                     icon = Icons.Default.Add,
-                    accentColor = OutflowRed,
-                    onClick = { onQuickAddExpense?.invoke() },
+                    onClick = onAddIncome,
                     modifier = Modifier.weight(1f)
                 )
-                QuickActionChip(
-                    text = "SIP Tracker",
-                    icon = Icons.Default.TrendingUp,
-                    accentColor = InflowGreen,
-                    onClick = { /* Navigation */ },
-                    modifier = Modifier.weight(1f)
-                )
+                if (onAddTransfer != null) {
+                    HeroAction(
+                        text = "Transfer",
+                        icon = Icons.Default.SwapHoriz,
+                        onClick = onAddTransfer,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 }
 
+/** A short plain-language read of the period: how much was saved, or how far spending went over. */
+private fun cashflowInsight(income: Double, expense: Double, currencySymbol: String): String {
+    return when {
+        income <= 0 && expense <= 0 -> "No activity yet. Add your first entry below."
+        income <= 0 -> "No income logged for this period yet"
+        expense <= income -> {
+            val savedPct = ((income - expense) / income * 100).roundToInt()
+            "You kept $savedPct% of your income"
+        }
+        else -> "Spent ${IndianCurrencyFormatter.formatInr(expense - income, currencySymbol)} more than you earned"
+    }
+}
+
 @Composable
-fun IndianMetricPill(
+private fun HeroMetric(
     title: String,
     amount: Double,
     currencySymbol: String,
-    isIncome: Boolean,
-    isBalanceHidden: Boolean = false,
+    icon: ImageVector,
+    accent: Color,
+    isHidden: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val accentColor = if (isIncome) InflowGreen else OutflowRed
-    val icon = if (isIncome) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward
-
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(alpha = 0.10f)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -262,16 +253,16 @@ fun IndianMetricPill(
         ) {
             Box(
                 modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.12f)),
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(accent.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = title,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(17.dp)
                 )
             }
 
@@ -280,16 +271,14 @@ fun IndianMetricPill(
             Column {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.72f)
                 )
-
-                val amountText = if (isBalanceHidden) "••••••" else IndianCurrencyFormatter.formatInr(amount, currencySymbol)
                 Text(
-                    text = amountText,
+                    text = if (isHidden) "••••••" else IndianCurrencyFormatter.formatInr(amount, currencySymbol),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color.White,
                     maxLines = 1
                 )
             }
@@ -298,38 +287,36 @@ fun IndianMetricPill(
 }
 
 @Composable
-fun QuickActionChip(
+private fun HeroAction(
     text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    accentColor: Color,
+    icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = accentColor.copy(alpha = 0.09f),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = text,
-                tint = accentColor,
-                modifier = Modifier.size(15.dp)
+                contentDescription = null,
+                tint = Color(0xFF1E1B4B),
+                modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = accentColor,
+                color = Color(0xFF1E1B4B),
                 maxLines = 1
             )
         }

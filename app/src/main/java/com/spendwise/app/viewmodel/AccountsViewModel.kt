@@ -25,60 +25,40 @@ class AccountsViewModel(
     val isBalanceHidden: StateFlow<Boolean> = repository.isBalanceHidden
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun addAccount(
+    /** Creates a new account, or updates [existing] in place (keeping its id and creation date). */
+    fun saveAccount(
+        existing: AccountEntity?,
         name: String,
         type: AccountType,
-        iconName: String = "AccountBalanceWallet",
-        colorHex: String = "#10B981",
-        balance: Double = 0.0,
-        isDefault: Boolean = false
-    ) {
-        viewModelScope.launch {
-            repository.insertAccount(
-                AccountEntity(
-                    name = name.trim(),
-                    type = type,
-                    balance = balance,
-                    iconName = iconName,
-                    colorHex = colorHex,
-                    isDefault = isDefault
-                )
-            )
-        }
-    }
-
-    fun addAccount(
-        name: String,
-        type: AccountType,
-        balance: Double,
         iconName: String,
         colorHex: String,
-        isDefault: Boolean
-    ) {
-        addAccount(name, type, iconName, colorHex, balance, isDefault)
-    }
-
-    fun updateAccount(
-        id: Long,
-        name: String,
-        type: AccountType,
-        balance: Double,
-        iconName: String,
-        colorHex: String,
+        openingBalance: Double,
         isDefault: Boolean
     ) {
         viewModelScope.launch {
-            repository.updateAccount(
-                AccountEntity(
-                    id = id,
-                    name = name.trim(),
-                    type = type,
-                    balance = balance,
-                    iconName = iconName,
-                    colorHex = colorHex,
-                    isDefault = isDefault
+            if (existing == null) {
+                repository.insertAccount(
+                    AccountEntity(
+                        name = name.trim(),
+                        type = type,
+                        balance = openingBalance,
+                        iconName = iconName,
+                        colorHex = colorHex,
+                        isDefault = isDefault
+                    )
                 )
-            )
+            } else {
+                repository.updateAccount(
+                    existing.copy(
+                        name = name.trim(),
+                        type = type,
+                        balance = openingBalance,
+                        iconName = iconName,
+                        colorHex = colorHex,
+                        isDefault = isDefault
+                    )
+                )
+            }
         }
     }
 

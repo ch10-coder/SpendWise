@@ -20,15 +20,20 @@ class SpendWiseApplication : Application() {
         super.onCreate()
         container = DefaultAppContainer(this)
 
-        // Start embedded HTTP API server on port 8080 for local AI/automation
+        // Start embedded HTTP API server on 127.0.0.1:8080 for on-device AI/automation
         apiServer = SpendWiseApiServer(
             repository = container.repository,
             scope = applicationScope,
-            port = 8080
+            port = 8080,
+            appVersion = appVersionName()
         ).also {
             it.start()
         }
     }
+
+    @Suppress("DEPRECATION")
+    private fun appVersionName(): String =
+        runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: ""
 
     override fun onTerminate() {
         super.onTerminate()

@@ -1,5 +1,6 @@
 package com.spendwise.app.ui.screens.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,11 +50,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spendwise.app.model.CurrencyOption
 import com.spendwise.app.model.ThemeMode
+import com.spendwise.app.ui.lock.AppLock
+import com.spendwise.app.ui.lock.AppLockSession
 import com.spendwise.app.ui.theme.BharatBlue
 import com.spendwise.app.ui.theme.InflowGreen
 import com.spendwise.app.ui.theme.SaffronPulse
@@ -70,6 +74,7 @@ fun SettingsScreen(
     val isAppLockEnabled by viewModel.isAppLockEnabled.collectAsStateWithLifecycle()
 
     var showCurrencyDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val cardBorder = BorderStroke(
         1.dp,
@@ -308,7 +313,20 @@ fun SettingsScreen(
 
                     Switch(
                         checked = isAppLockEnabled,
-                        onCheckedChange = { viewModel.toggleAppLock(it) },
+                        onCheckedChange = { enabled ->
+                            if (enabled && !AppLock.isAvailable(context)) {
+                                // Without a screen lock there is nothing to unlock with
+                                Toast.makeText(
+                                    context,
+                                    "Set up a screen lock (PIN, pattern or fingerprint) in your phone settings first",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                // You are already inside the app, so don't lock immediately
+                                if (enabled) AppLockSession.isUnlocked = true
+                                viewModel.toggleAppLock(enabled)
+                            }
+                        },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.primary,
                             checkedTrackColor = MaterialTheme.colorScheme.primaryContainer

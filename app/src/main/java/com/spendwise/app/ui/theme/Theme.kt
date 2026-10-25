@@ -33,6 +33,12 @@ val InflowGreenDark = Color(0xFF10B981)      // Emerald Inflow
 val OutflowRed = Color(0xFFDC2626)           // Crisp Outflow Red
 val OutflowRedDark = Color(0xFFEF4444)       // Coral Outflow Red
 
+// Hero card gradient (balance card, lock screen)
+val HeroGradientLight = listOf(Color(0xFF1E1B4B), Color(0xFF0052FF))
+val HeroGradientDark = listOf(Color(0xFF111A3A), Color(0xFF1D4ED8))
+val HeroInflowTint = Color(0xFF86EFAC)
+val HeroOutflowTint = Color(0xFFFCA5A5)
+
 // Dark Canvas (Stitch Midnight Indigo)
 val MidnightDarkBackground = Color(0xFF0A0F1D)
 val MidnightDarkSurface = Color(0xFF161E2E)
@@ -73,7 +79,20 @@ val BharatDarkColorScheme: ColorScheme = darkColorScheme(
     surfaceVariant = MidnightDarkSurfaceElevated,
     onSurfaceVariant = MidnightDarkTextSecondary,
     outline = MidnightDarkBorder,
-    outlineVariant = Color(0xFF1E293B)
+    outlineVariant = Color(0xFF1E293B),
+    // Material 3 surface roles (dialogs, menus, pickers, sheets, snackbars). Without these the
+    // components fall back to the stock lavender baseline and look off-brand.
+    surfaceTint = BharatBlueDark,
+    surfaceBright = MidnightDarkSurfaceElevated,
+    surfaceDim = MidnightDarkBackground,
+    surfaceContainerLowest = MidnightDarkBackground,
+    surfaceContainerLow = Color(0xFF111827),
+    surfaceContainer = MidnightDarkSurface,
+    surfaceContainerHigh = MidnightDarkSurfaceElevated,
+    surfaceContainerHighest = MidnightDarkBorder,
+    inverseSurface = Color(0xFFE2E8F0),
+    inverseOnSurface = Color(0xFF0F172A),
+    inversePrimary = BharatBlue
 )
 
 val BharatLightColorScheme: ColorScheme = lightColorScheme(
@@ -100,7 +119,20 @@ val BharatLightColorScheme: ColorScheme = lightColorScheme(
     surfaceVariant = PaperLightSurfaceElevated,
     onSurfaceVariant = PaperLightTextSecondary,
     outline = PaperLightBorder,
-    outlineVariant = Color(0xFFE2E8F0)
+    outlineVariant = Color(0xFFE2E8F0),
+    // Material 3 surface roles (dialogs, menus, pickers, sheets, snackbars) kept on the clean
+    // white / slate palette instead of the stock lavender baseline.
+    surfaceTint = BharatBlue,
+    surfaceBright = PaperLightSurface,
+    surfaceDim = Color(0xFFE2E8F0),
+    surfaceContainerLowest = PaperLightSurface,
+    surfaceContainerLow = PaperLightSurface,
+    surfaceContainer = PaperLightBackground,
+    surfaceContainerHigh = PaperLightSurface,
+    surfaceContainerHighest = PaperLightBorder,
+    inverseSurface = PaperLightTextPrimary,
+    inverseOnSurface = Color(0xFFF1F5F9),
+    inversePrimary = Color(0xFF93C5FD)
 )
 
 @Composable

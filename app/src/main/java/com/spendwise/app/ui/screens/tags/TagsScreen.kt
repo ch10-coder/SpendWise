@@ -1,5 +1,6 @@
 package com.spendwise.app.ui.screens.tags
 
+import com.spendwise.app.ui.components.ConfirmDeleteDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -47,6 +48,7 @@ fun TagsScreen(
     onDeleteTag: (TagEntity) -> Unit
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
+    var pendingDeleteTag by remember { mutableStateOf<TagEntity?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -79,10 +81,19 @@ fun TagsScreen(
             items(tags, key = { it.id }) { tag ->
                 TagItemCard(
                     tag = tag,
-                    onDelete = { onDeleteTag(tag) }
+                    onDelete = { pendingDeleteTag = tag }
                 )
             }
         }
+    }
+
+    pendingDeleteTag?.let { tag ->
+        ConfirmDeleteDialog(
+            title = "Delete Tag",
+            message = "Delete the tag \"${tag.name}\"? It will be removed from all transactions; the transactions themselves are kept.",
+            onConfirm = { onDeleteTag(tag) },
+            onDismiss = { pendingDeleteTag = null }
+        )
     }
 
     if (showAddDialog) {

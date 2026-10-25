@@ -1,5 +1,7 @@
 package com.spendwise.app.ui.screens.recurring
 
+import com.spendwise.app.util.IndianCurrencyFormatter
+import com.spendwise.app.ui.components.ConfirmDeleteDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -80,6 +82,7 @@ fun RecurringTransactionsScreen(
 
     var showSheet by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<RecurringTransactionEntity?>(null) }
+    var pendingDeleteRule by remember { mutableStateOf<RecurringTransactionEntity?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -148,7 +151,7 @@ fun RecurringTransactionsScreen(
                             showSheet = true
                         },
                         onToggleActive = { viewModel.setRecurringActive(rule.id, it) },
-                        onDelete = { viewModel.deleteRecurringTransaction(rule) }
+                        onDelete = { pendingDeleteRule = rule }
                     )
                 }
             }
@@ -191,7 +194,6 @@ fun RecurringTransactionsScreen(
                             frequency = frequency,
                             startDate = startDate,
                             endDate = endDate,
-                            nextOccurrence = startDate,
                             isActive = isActive,
                             note = note?.trim()?.takeIf { it.isNotEmpty() }
                         )
@@ -201,8 +203,21 @@ fun RecurringTransactionsScreen(
                 editingRule = null
             },
             onDelete = editingRule?.let { rule ->
-                { viewModel.deleteRecurringTransaction(rule) }
+                {
+                    pendingDeleteRule = rule
+                    showSheet = false
+                    editingRule = null
+                }
             }
+        )
+    }
+
+    pendingDeleteRule?.let { rule ->
+        ConfirmDeleteDialog(
+            title = "Delete Recurring Rule",
+            message = "Stop and delete \"${rule.title}\"? Transactions it already created are kept.",
+            onConfirm = { viewModel.deleteRecurringTransaction(rule) },
+            onDismiss = { pendingDeleteRule = null }
         )
     }
 }
@@ -543,7 +558,7 @@ private fun RecurringRuleCard(
     }
 }
 
-private fun formatAmount(amount: Double): String = String.format(Locale.US, "%,.2f", amount)
+private fun formatAmount(amount: Double): String = IndianCurrencyFormatter.formatInr(amount, symbol = "")
 
 private fun formatDate(timestamp: Long): String {
     val formatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
